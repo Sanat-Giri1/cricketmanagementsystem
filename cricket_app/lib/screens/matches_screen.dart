@@ -1,0 +1,246 @@
+import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+import 'live_scorecard_screen.dart';
+
+class MatchesScreen extends StatefulWidget {
+  const MatchesScreen({super.key});
+
+  @override
+  State<MatchesScreen> createState() => _MatchesScreenState();
+}
+
+class _MatchesScreenState extends State<MatchesScreen> {
+  late Future<List<dynamic>> _matchesFuture;
+  List<dynamic> _teams = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMatches();
+    _loadTeamsForDropdown();
+  }
+
+  void _loadMatches() {
+    setState(() {
+      _matchesFuture = ApiService.getMatches();
+    });
+  }
+
+  Future<void> _loadTeamsForDropdown() async {
+    final teams = await ApiService.getTeams();
+    setState(() {
+      _teams = teams;
+    });
+  }
+
+  String _teamName(int? teamId) {
+    if (teamId == null) return '-';
+    for (final t in _teams) {
+      if (t['team_id'] == teamId) return t['team_name'];
+    }
+    return 'Team $teamId';
+  }
+
+  void _showMatchForm({Map<String, dynamic>? match}) {
+    final dateController = TextEditingController(
+      text: match?['match_date'] != null
+          ? match!['match_date'].toString().substring(0, 10)
+          : '',
+    );
+    final venueController = TextEditingController(text: match?['venue'] ?? '');
+    final winnerController = TextEditingController(text: match?['winner'] ?? '');
+    int? team1Id = match?['team1_id'];
+    int? team2Id = match?['team2_id'];
+    final isEditing = match != null;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(isEditing ? 'Edit Match' : 'Add Match'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: dateController,
+                  decoration: const InputDecoration(labelText: 'Date (YYYY-MM-DD)'),
+                ),
+                DropdownButton<int>(
+                  value: team1Id,
+                  hint: const Text('Select Team 1'),
+                  isExpanded: true,
+                  items: _teams.map<DropdownMenuItem<int>>((team) {
+                    return DropdownMenuItem<int>(
+                      value: team['team_id'],
+                      child: Text(team['team_name']),
+                    );
+                  }).toList(),
+                  onChanged: (value) => setDialogState(() => team1Id = value),
+                ),
+                DropdownButton<int>(
+                  value: team2Id,
+                  hint: const Text('Select Team 2'),
+                  isExpanded: true,
+                  items: _teams.map<DropdownMenuItem<int>>((team) {
+                    return DropdownMenuItem<int>(
+                      value: team['team_id'],
+                      child: Text(team['team_name']),
+                    );
+                  }).toList(),
+                  onChanged: (value) => setDialogState(() => team2Id = value),
+                ),
+                TextField(
+                  controller: venueController,
+                  decoration: const InputDecoration(labelText: 'Venue'),
+                ),
+                TextField(
+                  controller: winnerController,
+                  decoration: const InputDecoration(labelText: 'Winner (team name)'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  if (isEditing) {
+                    await ApiService.updateMatch(
+                      match['match_id'],
+                      dateController.text,
+                      team1Id ?? 0,
+                      team2Id ?? 0,
+                      venueController.text,
+                      winnerController.text,
+                    );
+                  } else {
+                    await ApiService.addMatch(
+                      dateController.text,
+                      team1Id ?? 0,
+                      team2Id ?? 0,
+                      venueController.text,
+                      winnerController.text,
+                    );
+                  }
+                  if (context.mounted) Navigator.pop(context);
+                  _loadMatches();
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: $e')),
+                    );
+                  }
+                }
+              },
+              child: Text(isEditing ? 'Save' : 'Add'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(int matchId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Match?'),
+        content: const Text('This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await ApiService.deleteMatch(matchId);
+              if (context.mounted) Navigator.pop(context);
+              _loadMatches();
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Matches')),
+      body: FutureBuilder<List<dynamic>>(
+        future: _matchesFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          final matches = snapshot.data ?? [];
+          if (matches.isEmpty) {
+            return const Center(child: Text('No matches yet. Tap + to add one.'));
+          }
+          return ListView.builder(
+            itemCount: matches.length,
+            itemBuilder: (context, index) {
+              final match = matches[index];
+              final dateStr = match['match_date'] != null
+                  ? match['match_date'].toString().substring(0, 10)
+                  : '-';
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: ListTile(
+                  title: Text(
+                    '${_teamName(match['team1_id'])} vs ${_teamName(match['team2_id'])}',
+                  ),
+                  subtitle: Text(
+                    '$dateStr  |  ${match['venue'] ?? '-'}  |  Winner: ${match['winner'] ?? '-'}',
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.live_tv, color: Colors.green),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LiveScorecardScreen(
+                                matchId: match['match_id'],
+                                team1Id: match['team1_id'],
+                                team2Id: match['team2_id'],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.edit),
+                        onPressed: () => _showMatchForm(match: match),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _confirmDelete(match['match_id']),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showMatchForm(),
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
