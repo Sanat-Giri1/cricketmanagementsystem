@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'screens/start_screen.dart';
 import 'screens/teams_screen.dart';
 import 'screens/players_screen.dart';
 import 'screens/matches_screen.dart';
@@ -21,7 +22,10 @@ class CricketApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const HomeNav(),
+      home: const StartScreen(),
+      routes: {
+        '/dashboard': (context) => const HomeNav(),
+      },
     );
   }
 }

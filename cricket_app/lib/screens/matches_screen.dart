@@ -209,15 +209,98 @@ class _MatchesScreenState extends State<MatchesScreen> {
                       IconButton(
                         icon: const Icon(Icons.live_tv, color: Colors.green),
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => LiveScorecardScreen(
-                                matchId: match['match_id'],
-                                team1Id: match['team1_id'],
-                                team2Id: match['team2_id'],
-                              ),
-                            ),
+                          // Ask for overs before starting live match
+                          final oversController = TextEditingController(text: '20');
+                          showDialog<void>(
+                            context: context,
+                            builder: (context) {
+                              int? tossWinner; // declare outside StatefulBuilder so it persists across setState
+                              String tossDecision = 'bat';
+                              return StatefulBuilder(builder: (context, setState) {
+                                return AlertDialog(
+                                  title: const Text('Start Live Match'),
+                                  content: SingleChildScrollView(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        TextField(
+                                          controller: oversController,
+                                          keyboardType: TextInputType.number,
+                                          decoration: const InputDecoration(labelText: 'Overs (e.g., 20)'),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        DropdownButtonFormField<int>(
+                                          decoration: const InputDecoration(labelText: 'Toss winner'),
+                                          value: tossWinner,
+                                          items: [
+                                            DropdownMenuItem<int>(value: match['team1_id'], child: Text(_teamName(match['team1_id']))),
+                                            DropdownMenuItem<int>(value: match['team2_id'], child: Text(_teamName(match['team2_id']))),
+                                          ],
+                                          onChanged: (v) => setState(() => tossWinner = v),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            const Text('Decision:'),
+                                            const SizedBox(width: 12),
+                                            ChoiceChip(
+                                              label: const Text('Bat'),
+                                              selected: tossDecision == 'bat',
+                                              onSelected: (_) => setState(() => tossDecision = 'bat'),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            ChoiceChip(
+                                              label: const Text('Bowl'),
+                                              selected: tossDecision == 'bowl',
+                                              onSelected: (_) => setState(() => tossDecision = 'bowl'),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        final overs = int.tryParse(oversController.text) ?? 20;
+                                        int? initialBatting;
+                                        try {
+                                          // Persist toss info (if selected)
+                                          if (tossWinner != null) {
+                                            await ApiService.updateMatchToss(match['match_id'], tossWinner, tossDecision);
+                                            // determine initial batting team based on decision
+                                            if (tossDecision == 'bat') {
+                                              initialBatting = tossWinner;
+                                            } else {
+                                              initialBatting = (tossWinner == match['team1_id']) ? match['team2_id'] : match['team1_id'];
+                                            }
+                                          }
+                                        } catch (e) {
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save toss: $e')));
+                                          }
+                                        }
+                                        if (context.mounted) Navigator.pop(context);
+                                        if (context.mounted) Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => LiveScorecardScreen(
+                                              matchId: match['match_id'],
+                                              team1Id: match['team1_id'],
+                                              team2Id: match['team2_id'],
+                                              totalOvers: overs,
+                                              initialBattingTeamId: initialBatting,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: const Text('Start'),
+                                    ),
+                                  ],
+                                );
+                              });
+                            },
                           );
                         },
                       ),

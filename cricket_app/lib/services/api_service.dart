@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://10.0.2.2:3000';
+  static const String baseUrl = 'http://localhost:3000';
 
   // ---------- TEAMS ----------
   static Future<List<dynamic>> getTeams() async {
@@ -14,13 +14,14 @@ class ApiService {
     }
   }
 
-  static Future<void> addTeam(String teamName, String captain, String coach) async {
+  static Future<Map<String, dynamic>> addTeam(String teamName, String captain, String coach) async {
     final response = await http.post(
       Uri.parse('$baseUrl/teams'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'team_name': teamName, 'captain': captain, 'coach': coach}),
     );
     if (response.statusCode != 201) throw Exception('Failed to add team');
+    return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
   static Future<void> updateTeam(int id, String teamName, String captain, String coach) async {
@@ -47,7 +48,7 @@ class ApiService {
     }
   }
 
-  static Future<void> addPlayer(String name, int age, int jerseyNo, String role, int teamId) async {
+  static Future<Map<String, dynamic>> addPlayer(String name, int age, int jerseyNo, String role, int teamId) async {
     final response = await http.post(
       Uri.parse('$baseUrl/players'),
       headers: {'Content-Type': 'application/json'},
@@ -56,6 +57,7 @@ class ApiService {
       }),
     );
     if (response.statusCode != 201) throw Exception('Failed to add player');
+    return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
   static Future<void> updatePlayer(int id, String name, int age, int jerseyNo, String role, int teamId) async {
@@ -84,26 +86,60 @@ class ApiService {
     }
   }
 
-  static Future<void> addMatch(String matchDate, int team1Id, int team2Id, String venue, String winner) async {
+  static Future<Map<String, dynamic>> getMatch(int id) async {
+    final response = await http.get(Uri.parse('$baseUrl/matches/$id'));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else {
+      throw Exception('Failed to load match');
+    }
+  }
+
+  static Future<void> addMatch(String matchDate, int team1Id, int team2Id, String venue, String winner, {int? tossWinnerTeamId, String? tossDecision}) async {
     final response = await http.post(
       Uri.parse('$baseUrl/matches'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'match_date': matchDate, 'team1_id': team1Id, 'team2_id': team2Id, 'venue': venue, 'winner': winner,
+        'match_date': matchDate,
+        'team1_id': team1Id,
+        'team2_id': team2Id,
+        'venue': venue,
+        'winner': winner,
+        'toss_winner_team_id': tossWinnerTeamId,
+        'toss_decision': tossDecision,
       }),
     );
     if (response.statusCode != 201) throw Exception('Failed to add match');
   }
 
-  static Future<void> updateMatch(int id, String matchDate, int team1Id, int team2Id, String venue, String winner) async {
+  static Future<void> updateMatch(int id, String matchDate, int team1Id, int team2Id, String venue, String winner, {int? tossWinnerTeamId, String? tossDecision}) async {
     final response = await http.put(
       Uri.parse('$baseUrl/matches/$id'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'match_date': matchDate, 'team1_id': team1Id, 'team2_id': team2Id, 'venue': venue, 'winner': winner,
+        'match_date': matchDate,
+        'team1_id': team1Id,
+        'team2_id': team2Id,
+        'venue': venue,
+        'winner': winner,
+        'toss_winner_team_id': tossWinnerTeamId,
+        'toss_decision': tossDecision,
       }),
     );
     if (response.statusCode != 200) throw Exception('Failed to update match');
+  }
+
+  // Update only toss
+  static Future<void> updateMatchToss(int id, int? tossWinnerTeamId, String? tossDecision) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/matches/$id/toss'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'toss_winner_team_id': tossWinnerTeamId,
+        'toss_decision': tossDecision,
+      }),
+    );
+    if (response.statusCode != 200) throw Exception('Failed to update match toss');
   }
 
   static Future<void> deleteMatch(int id) async {

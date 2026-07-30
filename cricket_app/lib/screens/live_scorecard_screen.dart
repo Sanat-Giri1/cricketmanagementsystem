@@ -6,12 +6,16 @@ class LiveScorecardScreen extends StatefulWidget {
   final int matchId;
   final int team1Id;
   final int team2Id;
+  final int totalOvers; // total overs for this innings/match
+  final int? initialBattingTeamId; // optional override from caller (honor toss decision)
 
   const LiveScorecardScreen({
     super.key,
     required this.matchId,
     required this.team1Id,
     required this.team2Id,
+    required this.totalOvers,
+    this.initialBattingTeamId,
   });
 
   @override
@@ -26,11 +30,17 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
   int _battingTeamId = 0; // which team is currently on strike
   Timer? _pollTimer;
   bool _loading = true;
+  late int _totalOvers; // configured total overs for this live session
+  double _lastOversSeen = 0.0; // to detect over boundaries
+  bool _requiresBowler = false; // when true, user must pick a bowler for the new over
+
 
   @override
   void initState() {
     super.initState();
-    _battingTeamId = widget.team1Id;
+    // determine batting team: prefer caller-provided initialBattingTeamId, otherwise default to 0 until fetch
+    _battingTeamId = widget.initialBattingTeamId ?? 0;
+    _totalOvers = widget.totalOvers;
     _init();
     _pollTimer = Timer.periodic(const Duration(seconds: 4), (_) => _refresh());
   }
@@ -42,15 +52,78 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
   }
 
   Future<void> _init() async {
-    final teams = await ApiService.getTeams();
-    final players = await ApiService.getPlayers();
-    setState(() {
-      _teams = teams;
-      _allPlayers = players;
-    });
-    await _ensureScoreRows();
-    await _refresh();
-    setState(() => _loading = false);
+    setState(() => _loading = true);
+    try {
+      final teams = await ApiService.getTeams();
+      final players = await ApiService.getPlayers();
+      if (!mounted) return;
+      setState(() {
+        _teams = teams;
+        _allPlayers = players;
+      });
+
+      // Read match to honor toss decision and set initial batting team if caller didn't provide an override
+      if (widget.initialBattingTeamId == null) {
+        try {
+          final match = await ApiService.getMatch(widget.matchId);
+          if (match != null && match['toss_winner_team_id'] != null && match['toss_decision'] != null) {
+            final dynamic tossWinnerRaw = match['toss_winner_team_id'];
+            final int tossWinner = tossWinnerRaw is int ? tossWinnerRaw : int.parse(tossWinnerRaw.toString());
+            final String decision = (match['toss_decision'] as String).toLowerCase();
+            if (decision == 'bat') {
+              _battingTeamId = tossWinner;
+            } else {
+              // toss winner chose to bowl -> other team bats
+              _battingTeamId = (tossWinner == widget.team1Id) ? widget.team2Id : widget.team1Id;
+            }
+          } else {
+            // default to team1 if no toss info
+            _battingTeamId = widget.team1Id;
+          }
+        } catch (_) {
+          // if match fetch fails, default to team1
+          _battingTeamId = widget.team1Id;
+        }
+      }
+
+      await _ensureScoreRows();
+      await _refresh();
+
+      // if openers or bowler not set, prompt the user to select them
+      await Future.delayed(const Duration(milliseconds: 200));
+      await _maybePromptForOpenersAndBowler();
+
+      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      final retry = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          title: const Text('Failed to start live match'),
+          content: Text('Could not load data from the server:\n$e'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+
+      if (retry == true) {
+        // Retry initialization
+        _init();
+      } else {
+        // Return to previous screen (matches list)
+        if (Navigator.canPop(context)) Navigator.pop(context);
+      }
+    }
   }
 
   Future<void> _ensureScoreRows() async {
@@ -65,6 +138,89 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
     }
     if (!hasTeam2) {
       await ApiService.addMatchScore(widget.matchId, widget.team2Id, 0, 0, 0.0);
+    }
+  }
+
+  int _oversToBalls(double overs) {
+    final whole = overs.floor();
+    final balls = ((overs - whole) * 10).round();
+    return whole * 6 + balls;
+  }
+
+  double _ballsToOvers(int balls) {
+    final whole = balls ~/ 6;
+    final rem = balls % 6;
+    return whole + (rem / 10);
+  }
+
+  Future<void> _maybePromptForOpenersAndBowler() async {
+    final score = _battingScore;
+    if (score == null) return;
+    final battingPlayers = _playersForTeam(_battingTeamId);
+    // If striker/non-striker not set, force selection before scoring
+    if (score['striker_id'] == null || score['non_striker_id'] == null || score['current_bowler_id'] == null) {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          int? striker = score['striker_id'];
+          int? nonStriker = score['non_striker_id'];
+          int? bowler = score['current_bowler_id'];
+          return StatefulBuilder(builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Select Openers & Bowler'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(labelText: 'Striker'),
+                      value: striker,
+                      items: battingPlayers.map<DropdownMenuItem<int>>((p) {
+                        return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
+                      }).toList(),
+                      onChanged: (v) => setState(() => striker = v),
+                    ),
+                    DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(labelText: 'Non-striker'),
+                      value: nonStriker,
+                      items: battingPlayers.map<DropdownMenuItem<int>>((p) {
+                        return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
+                      }).toList(),
+                      onChanged: (v) => setState(() => nonStriker = v),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Select initial bowler for first over', style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(labelText: 'Bowler'),
+                      value: bowler,
+                      items: _playersForTeam(_battingTeamId == widget.team1Id ? widget.team2Id : widget.team1Id)
+                          .map<DropdownMenuItem<int>>((p) {
+                        return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
+                      }).toList(),
+                      onChanged: (v) => setState(() => bowler = v),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () async {
+                    if (striker == null || nonStriker == null || bowler == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select all players')));
+                      return;
+                    }
+                    await _updatePlayers(strikerId: striker, nonStrikerId: nonStriker, bowlerId: bowler);
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Start'),
+                ),
+              ],
+            );
+          });
+        },
+      );
     }
   }
 
@@ -122,18 +278,39 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
     final score = _battingScore;
     if (score == null) return;
 
-    final newRuns = (score['runs'] ?? 0) + runs;
     final currentOvers = double.tryParse(score['overs'].toString()) ?? 0.0;
+    final currentBalls = _oversToBalls(currentOvers);
+    final totalBalls = _totalOvers * 6;
+
+    if (currentBalls >= totalBalls) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Innings complete')));
+      return;
+    }
+
+    // Ensure openers and bowler are selected before scoring
+    if (score['striker_id'] == null || score['non_striker_id'] == null || score['current_bowler_id'] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select striker, non-striker and bowler before scoring')));
+      return;
+    }
+
+    final newRuns = (score['runs'] ?? 0) + runs;
     final newOvers = isExtra ? currentOvers : _addBallToOvers(currentOvers);
+    final newBalls = _oversToBalls(newOvers);
 
     int? striker = score['striker_id'];
     int? nonStriker = score['non_striker_id'];
+
     // On odd runs (not extras), swap striker/non-striker
     if (!isExtra && runs % 2 == 1 && striker != null && nonStriker != null) {
       final temp = striker;
       striker = nonStriker;
       nonStriker = temp;
     }
+
+    // Detect end of over: when newBalls % 6 == 0 and newBalls > currentBalls
+    final overEnded = newBalls > currentBalls && (newBalls % 6 == 0);
+
+    final bowlerIdToSave = overEnded ? null : score['current_bowler_id'];
 
     await ApiService.updateMatchScore(
       score['score_id'],
@@ -144,16 +321,41 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
       newOvers,
       strikerId: striker,
       nonStrikerId: nonStriker,
-      currentBowlerId: score['current_bowler_id'],
+      currentBowlerId: bowlerIdToSave,
     );
-    _refresh();
+
+    if (overEnded) {
+      _requiresBowler = true;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Over complete — select next over bowler')));
+    }
+
+    await _refresh();
   }
 
   Future<void> _addWicket() async {
     final score = _battingScore;
     if (score == null) return;
+
     final currentOvers = double.tryParse(score['overs'].toString()) ?? 0.0;
+    final currentBalls = _oversToBalls(currentOvers);
+    final totalBalls = _totalOvers * 6;
+
+    if (currentBalls >= totalBalls) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Innings complete')));
+      return;
+    }
+
+    // Ensure bowler and openers present
+    if (score['striker_id'] == null || score['non_striker_id'] == null || score['current_bowler_id'] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select striker, non-striker and bowler before scoring')));
+      return;
+    }
+
     final newOvers = _addBallToOvers(currentOvers);
+    final newBalls = _oversToBalls(newOvers);
+    final overEnded = newBalls > currentBalls && (newBalls % 6 == 0);
+
+    final bowlerIdToSave = overEnded ? null : score['current_bowler_id'];
 
     await ApiService.updateMatchScore(
       score['score_id'],
@@ -164,9 +366,15 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
       newOvers,
       strikerId: null, // new batsman needs to be selected
       nonStrikerId: score['non_striker_id'],
-      currentBowlerId: score['current_bowler_id'],
+      currentBowlerId: bowlerIdToSave,
     );
-    _refresh();
+
+    if (overEnded) {
+      _requiresBowler = true;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Over complete — select next over bowler')));
+    }
+
+    await _refresh();
   }
 
   Future<void> _updatePlayers({int? strikerId, int? nonStrikerId, int? bowlerId}) async {
@@ -183,6 +391,9 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
       nonStrikerId: nonStrikerId ?? score['non_striker_id'],
       currentBowlerId: bowlerId ?? score['current_bowler_id'],
     );
+    if (bowlerId != null) {
+      _requiresBowler = false;
+    }
     _refresh();
   }
 
@@ -262,6 +473,11 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
               }).toList(),
               onChanged: (v) => _updatePlayers(nonStrikerId: v),
             ),
+            const SizedBox(height: 8),
+            if (_requiresBowler) ...[
+              Text('Select bowler for this over', style: TextStyle(color: Colors.red.shade700)),
+              const SizedBox(height: 6),
+            ],
             DropdownButtonFormField<int>(
               decoration: const InputDecoration(labelText: 'Bowler'),
               value: score?['current_bowler_id'],
