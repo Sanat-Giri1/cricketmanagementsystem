@@ -20,6 +20,18 @@ app.use('/batting', battingRoutes);
 app.use('/bowling', bowlingRoutes);
 app.use('/matchscore', matchScoreRoutes);
 
+async function runStartupMigrations() {
+  try {
+    console.log('Running startup DB migrations...');
+    await pool.query('ALTER TABLE matches ADD COLUMN IF NOT EXISTS toss_winner_team_id integer;');
+    await pool.query("ALTER TABLE matches ADD COLUMN IF NOT EXISTS toss_decision character varying(50);");
+    console.log('Startup DB migrations completed.');
+  } catch (err) {
+    console.error('Startup DB migration failed:', err.message || err);
+    throw err;
+  }
+}
+
 app.get('/', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
@@ -55,6 +67,17 @@ app.get('/__routes', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+
+(async () => {
+  try {
+    // Run startup DB migrations that add missing columns if needed
+    await runStartupMigrations();
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error('Failed to start server due to startup error:', err.message || err);
+    process.exit(1);
+  }
+})();

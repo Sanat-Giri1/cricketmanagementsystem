@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'live_scorecard_screen.dart';
+import 'match_result_screen.dart';
 
 class MatchesScreen extends StatefulWidget {
   const MatchesScreen({super.key});
@@ -159,9 +160,19 @@ class _MatchesScreenState extends State<MatchesScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              await ApiService.deleteMatch(matchId);
-              if (context.mounted) Navigator.pop(context);
-              _loadMatches();
+              try {
+                // show progress indicator while deleting
+                showDialog(context: context, builder: (_) => const Center(child: CircularProgressIndicator()), barrierDismissible: false);
+                await ApiService.deleteMatch(matchId);
+                if (context.mounted) Navigator.pop(context); // close progress
+                if (context.mounted) Navigator.pop(context); // close confirm dialog
+                _loadMatches();
+              } catch (e) {
+                if (context.mounted) Navigator.pop(context); // close progress
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete match: $e')));
+                }
+              }
             },
             child: const Text('Delete'),
           ),
@@ -194,6 +205,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
               final dateStr = match['match_date'] != null
                   ? match['match_date'].toString().substring(0, 10)
                   : '-';
+              final hasResult = match['winner'] != null && match['winner'].toString().isNotEmpty;
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 child: ListTile(
@@ -201,11 +213,36 @@ class _MatchesScreenState extends State<MatchesScreen> {
                     '${_teamName(match['team1_id'])} vs ${_teamName(match['team2_id'])}',
                   ),
                   subtitle: Text(
-                    '$dateStr  |  ${match['venue'] ?? '-'}  |  Winner: ${match['winner'] ?? '-'}',
+                    hasResult
+                        ? '$dateStr  |  ${match['venue'] ?? '-'}  |  ${match['winner']} won by ${match['win_margin'] ?? '-'}'
+                        : '$dateStr  |  ${match['venue'] ?? '-'}  |  Winner: ${match['winner'] ?? '-'}',
                   ),
+                  onTap: hasResult
+                      ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MatchResultScreen(matchId: match['match_id']),
+                            ),
+                          );
+                        }
+                      : null,
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (hasResult)
+                        IconButton(
+                          icon: const Icon(Icons.leaderboard, color: Colors.amber),
+                          tooltip: 'View scorecard',
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => MatchResultScreen(matchId: match['match_id']),
+                              ),
+                            );
+                          },
+                        ),
                       IconButton(
                         icon: const Icon(Icons.live_tv, color: Colors.green),
                         onPressed: () {

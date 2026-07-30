@@ -23,10 +23,10 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { match_id, player_id, runs, balls, fours, sixes, strike_rate } = req.body;
+    const { match_id, player_id, runs, balls, fours, sixes, strike_rate, is_out } = req.body;
     const result = await pool.query(
-      'INSERT INTO batting_stats (match_id, player_id, runs, balls, fours, sixes, strike_rate) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [match_id, player_id, runs, balls, fours, sixes, strike_rate]
+      'INSERT INTO batting_stats (match_id, player_id, runs, balls, fours, sixes, strike_rate, is_out) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [match_id, player_id, runs, balls, fours, sixes, strike_rate, is_out || false]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -36,10 +36,10 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
-    const { match_id, player_id, runs, balls, fours, sixes, strike_rate } = req.body;
+    const { match_id, player_id, runs, balls, fours, sixes, strike_rate, is_out } = req.body;
     const result = await pool.query(
-      'UPDATE batting_stats SET match_id = $1, player_id = $2, runs = $3, balls = $4, fours = $5, sixes = $6, strike_rate = $7 WHERE batting_id = $8 RETURNING *',
-      [match_id, player_id, runs, balls, fours, sixes, strike_rate, req.params.id]
+      'UPDATE batting_stats SET match_id = $1, player_id = $2, runs = $3, balls = $4, fours = $5, sixes = $6, strike_rate = $7, is_out = $8 WHERE batting_id = $9 RETURNING *',
+      [match_id, player_id, runs, balls, fours, sixes, strike_rate, is_out || false, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Batting record not found' });
     res.json(result.rows[0]);

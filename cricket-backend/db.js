@@ -9,4 +9,10 @@ const pool = new Pool({
   database: process.env.DB_NAME,
 });
 
+pool.on('connect', client => {
+  client.query("SET search_path TO public;").catch(err => {
+    console.error('Failed to set search_path on new PG client:', err.message || err);
+  });
+});
+
 module.exports = pool;

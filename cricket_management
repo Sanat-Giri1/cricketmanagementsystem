@@ -2,12 +2,12 @@
 -- PostgreSQL database dump
 --
 
-\restrict MdCfpsTZNuPU8dkiG6FgxZ7uSy4UJmeNWmcavz1xvBVshJFtYiBibrgQpKrLOSU
+\restrict d9YOIZ8FsfvZaDUR1B1eAeU4xbkFtsQRqGqyVqQb0dkLsa5cqLopZ4pEUFyuZq8
 
 -- Dumped from database version 18.4
 -- Dumped by pg_dump version 18.4
 
--- Started on 2026-07-25 10:07:47
+-- Started on 2026-07-28 19:45:28
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -61,7 +61,7 @@ CREATE SEQUENCE public.batting_stats_batting_id_seq
 ALTER SEQUENCE public.batting_stats_batting_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5082 (class 0 OID 0)
+-- TOC entry 5085 (class 0 OID 0)
 -- Dependencies: 225
 -- Name: batting_stats_batting_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -104,7 +104,7 @@ CREATE SEQUENCE public.bowling_stats_bowling_id_seq
 ALTER SEQUENCE public.bowling_stats_bowling_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5083 (class 0 OID 0)
+-- TOC entry 5086 (class 0 OID 0)
 -- Dependencies: 227
 -- Name: bowling_stats_bowling_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -123,7 +123,10 @@ CREATE TABLE public.match_score (
     team_id integer,
     runs integer DEFAULT 0,
     wickets integer DEFAULT 0,
-    overs numeric(3,1) DEFAULT 0
+    overs numeric(3,1) DEFAULT 0,
+    striker_id integer,
+    non_striker_id integer,
+    current_bowler_id integer
 );
 
 
@@ -146,7 +149,7 @@ CREATE SEQUENCE public.match_score_score_id_seq
 ALTER SEQUENCE public.match_score_score_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5084 (class 0 OID 0)
+-- TOC entry 5087 (class 0 OID 0)
 -- Dependencies: 229
 -- Name: match_score_score_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -188,7 +191,7 @@ CREATE SEQUENCE public.matches_match_id_seq
 ALTER SEQUENCE public.matches_match_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5085 (class 0 OID 0)
+-- TOC entry 5088 (class 0 OID 0)
 -- Dependencies: 223
 -- Name: matches_match_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -230,7 +233,7 @@ CREATE SEQUENCE public.player_player_id_seq
 ALTER SEQUENCE public.player_player_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5086 (class 0 OID 0)
+-- TOC entry 5089 (class 0 OID 0)
 -- Dependencies: 221
 -- Name: player_player_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -270,7 +273,7 @@ CREATE SEQUENCE public.team_team_id_seq
 ALTER SEQUENCE public.team_team_id_seq OWNER TO postgres;
 
 --
--- TOC entry 5087 (class 0 OID 0)
+-- TOC entry 5090 (class 0 OID 0)
 -- Dependencies: 219
 -- Name: team_team_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
@@ -327,7 +330,7 @@ ALTER TABLE ONLY public.team ALTER COLUMN team_id SET DEFAULT nextval('public.te
 
 
 --
--- TOC entry 5072 (class 0 OID 25111)
+-- TOC entry 5075 (class 0 OID 25111)
 -- Dependencies: 226
 -- Data for Name: batting_stats; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -339,7 +342,7 @@ COPY public.batting_stats (batting_id, match_id, player_id, runs, balls, fours, 
 
 
 --
--- TOC entry 5074 (class 0 OID 25133)
+-- TOC entry 5077 (class 0 OID 25133)
 -- Dependencies: 228
 -- Data for Name: bowling_stats; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -350,30 +353,39 @@ COPY public.bowling_stats (bowling_id, match_id, player_id, overs, runs_conceded
 
 
 --
--- TOC entry 5076 (class 0 OID 25154)
+-- TOC entry 5079 (class 0 OID 25154)
 -- Dependencies: 230
 -- Data for Name: match_score; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.match_score (score_id, match_id, team_id, runs, wickets, overs) FROM stdin;
-1	1	1	245	6	50.0
-2	1	2	210	10	48.3
+COPY public.match_score (score_id, match_id, team_id, runs, wickets, overs, striker_id, non_striker_id, current_bowler_id) FROM stdin;
+1	1	1	245	6	50.0	\N	\N	\N
+2	1	2	210	10	48.3	\N	\N	\N
+6	3	4	0	0	0.0	\N	\N	\N
+7	3	1	0	0	0.0	\N	\N	\N
+8	2	3	0	0	0.0	\N	\N	\N
+9	2	1	0	0	0.0	\N	\N	\N
+10	36	2	31	4	1.4	\N	4	7
+11	36	3	43	1	1.2	\N	7	4
 \.
 
 
 --
--- TOC entry 5070 (class 0 OID 25093)
+-- TOC entry 5073 (class 0 OID 25093)
 -- Dependencies: 224
 -- Data for Name: matches; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.matches (match_id, match_date, team1_id, team2_id, venue, winner) FROM stdin;
 1	2026-07-20	1	2	Melbourne Cricket Ground	India
+2	2026-10-02	3	1	ktm	england
+3	2026-06-02	4	1	tu stadiun	nepal
+36	2026-01-01	2	3	ktm	australia
 \.
 
 
 --
--- TOC entry 5068 (class 0 OID 25079)
+-- TOC entry 5071 (class 0 OID 25079)
 -- Dependencies: 222
 -- Data for Name: player; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -383,11 +395,12 @@ COPY public.player (player_id, player_name, age, jersey_no, role, team_id) FROM 
 2	Jasprit Bumrah	31	93	Bowler	1
 3	Steve Smith	36	49	Batsman	2
 4	Mitchell Starc	35	56	Bowler	2
+7	ron2	23	2	bowler	3
 \.
 
 
 --
--- TOC entry 5066 (class 0 OID 25070)
+-- TOC entry 5069 (class 0 OID 25070)
 -- Dependencies: 220
 -- Data for Name: team; Type: TABLE DATA; Schema: public; Owner: postgres
 --
@@ -395,11 +408,13 @@ COPY public.player (player_id, player_name, age, jersey_no, role, team_id) FROM 
 COPY public.team (team_id, team_name, captain, coach) FROM stdin;
 1	India	Rohit Sharma	Gautam Gambhir
 2	Australia	Pat Cummins	Andrew McDonald
+3	england	ben stokes	sanat
+4	nepal	paras	susan
 \.
 
 
 --
--- TOC entry 5088 (class 0 OID 0)
+-- TOC entry 5091 (class 0 OID 0)
 -- Dependencies: 225
 -- Name: batting_stats_batting_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -408,7 +423,7 @@ SELECT pg_catalog.setval('public.batting_stats_batting_id_seq', 2, true);
 
 
 --
--- TOC entry 5089 (class 0 OID 0)
+-- TOC entry 5092 (class 0 OID 0)
 -- Dependencies: 227
 -- Name: bowling_stats_bowling_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
@@ -417,39 +432,39 @@ SELECT pg_catalog.setval('public.bowling_stats_bowling_id_seq', 1, true);
 
 
 --
--- TOC entry 5090 (class 0 OID 0)
+-- TOC entry 5093 (class 0 OID 0)
 -- Dependencies: 229
 -- Name: match_score_score_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.match_score_score_id_seq', 2, true);
+SELECT pg_catalog.setval('public.match_score_score_id_seq', 11, true);
 
 
 --
--- TOC entry 5091 (class 0 OID 0)
+-- TOC entry 5094 (class 0 OID 0)
 -- Dependencies: 223
 -- Name: matches_match_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.matches_match_id_seq', 1, true);
+SELECT pg_catalog.setval('public.matches_match_id_seq', 36, true);
 
 
 --
--- TOC entry 5092 (class 0 OID 0)
+-- TOC entry 5095 (class 0 OID 0)
 -- Dependencies: 221
 -- Name: player_player_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.player_player_id_seq', 5, true);
+SELECT pg_catalog.setval('public.player_player_id_seq', 7, true);
 
 
 --
--- TOC entry 5093 (class 0 OID 0)
+-- TOC entry 5096 (class 0 OID 0)
 -- Dependencies: 219
 -- Name: team_team_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.team_team_id_seq', 2, true);
+SELECT pg_catalog.setval('public.team_team_id_seq', 4, true);
 
 
 --
@@ -543,7 +558,16 @@ ALTER TABLE ONLY public.bowling_stats
 
 
 --
--- TOC entry 4916 (class 2606 OID 25164)
+-- TOC entry 4916 (class 2606 OID 25190)
+-- Name: match_score match_score_current_bowler_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.match_score
+    ADD CONSTRAINT match_score_current_bowler_id_fkey FOREIGN KEY (current_bowler_id) REFERENCES public.player(player_id);
+
+
+--
+-- TOC entry 4917 (class 2606 OID 25164)
 -- Name: match_score match_score_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -552,7 +576,25 @@ ALTER TABLE ONLY public.match_score
 
 
 --
--- TOC entry 4917 (class 2606 OID 25169)
+-- TOC entry 4918 (class 2606 OID 25185)
+-- Name: match_score match_score_non_striker_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.match_score
+    ADD CONSTRAINT match_score_non_striker_id_fkey FOREIGN KEY (non_striker_id) REFERENCES public.player(player_id);
+
+
+--
+-- TOC entry 4919 (class 2606 OID 25180)
+-- Name: match_score match_score_striker_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.match_score
+    ADD CONSTRAINT match_score_striker_id_fkey FOREIGN KEY (striker_id) REFERENCES public.player(player_id);
+
+
+--
+-- TOC entry 4920 (class 2606 OID 25169)
 -- Name: match_score match_score_team_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -587,11 +629,11 @@ ALTER TABLE ONLY public.player
     ADD CONSTRAINT player_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.team(team_id);
 
 
--- Completed on 2026-07-25 10:07:47
+-- Completed on 2026-07-28 19:45:28
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict MdCfpsTZNuPU8dkiG6FgxZ7uSy4UJmeNWmcavz1xvBVshJFtYiBibrgQpKrLOSU
+\unrestrict d9YOIZ8FsfvZaDUR1B1eAeU4xbkFtsQRqGqyVqQb0dkLsa5cqLopZ4pEUFyuZq8
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
+const int kMinPlayersPerTeam = 5;
+
 class StartScreen extends StatelessWidget {
   const StartScreen({super.key});
 
@@ -69,8 +71,10 @@ class TwoTeamMatchSetupScreen extends StatefulWidget {
 class _TwoTeamMatchSetupScreenState extends State<TwoTeamMatchSetupScreen> {
   final _team1NameController = TextEditingController();
   final _team2NameController = TextEditingController();
-  final List<TextEditingController> _team1Players = [TextEditingController()];
-  final List<TextEditingController> _team2Players = [TextEditingController()];
+  final List<TextEditingController> _team1Players =
+      List.generate(kMinPlayersPerTeam, (_) => TextEditingController());
+  final List<TextEditingController> _team2Players =
+      List.generate(kMinPlayersPerTeam, (_) => TextEditingController());
 
   @override
   void dispose() {
@@ -101,8 +105,12 @@ class _TwoTeamMatchSetupScreenState extends State<TwoTeamMatchSetupScreen> {
       _showError('Please enter both team names.');
       return;
     }
-    if (team1Players.isEmpty || team2Players.isEmpty) {
-      _showError('Please enter at least one player for each team.');
+    if (team1Players.length < kMinPlayersPerTeam) {
+      _showError('$team1Name needs at least $kMinPlayersPerTeam players (currently has ${team1Players.length}).');
+      return;
+    }
+    if (team2Players.length < kMinPlayersPerTeam) {
+      _showError('$team2Name needs at least $kMinPlayersPerTeam players (currently has ${team2Players.length}).');
       return;
     }
 
@@ -164,9 +172,9 @@ class _TwoTeamMatchSetupScreenState extends State<TwoTeamMatchSetupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Enter team and player details for a two team match.',
-              style: TextStyle(fontSize: 16),
+            Text(
+              'Enter team and player details for a two team match. Each team needs at least $kMinPlayersPerTeam players.',
+              style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 20),
             TextField(
@@ -225,7 +233,10 @@ class _TournamentSetupScreenState extends State<TournamentSetupScreen> {
   void _initializeTeams() {
     _teams.clear();
     for (var i = 0; i < _teamCount; i++) {
-      _teams.add(_TeamGroup(nameController: TextEditingController(), players: [TextEditingController(), TextEditingController()]));
+      _teams.add(_TeamGroup(
+        nameController: TextEditingController(),
+        players: List.generate(kMinPlayersPerTeam, (_) => TextEditingController()),
+      ));
     }
   }
 
@@ -233,7 +244,10 @@ class _TournamentSetupScreenState extends State<TournamentSetupScreen> {
     setState(() {
       _teamCount = count;
       while (_teams.length < _teamCount) {
-        _teams.add(_TeamGroup(nameController: TextEditingController(), players: [TextEditingController(), TextEditingController()]));
+        _teams.add(_TeamGroup(
+          nameController: TextEditingController(),
+          players: List.generate(kMinPlayersPerTeam, (_) => TextEditingController()),
+        ));
       }
       while (_teams.length > _teamCount) {
         _teams.removeLast().dispose();
@@ -257,8 +271,8 @@ class _TournamentSetupScreenState extends State<TournamentSetupScreen> {
         _showError('Please enter a name for team ${i + 1}.');
         return;
       }
-      if (players.isEmpty) {
-        _showError('Please enter at least one player for team ${i + 1}.');
+      if (players.length < kMinPlayersPerTeam) {
+        _showError('Team ${i + 1} ($name) needs at least $kMinPlayersPerTeam players (currently has ${players.length}).');
         return;
       }
       teams.add(TeamData(name: name, players: players));
@@ -298,6 +312,8 @@ class _TournamentSetupScreenState extends State<TournamentSetupScreen> {
               decoration: InputDecoration(labelText: 'Team ${index + 1} name'),
             ),
             const SizedBox(height: 16),
+            Text('Needs at least $kMinPlayersPerTeam players', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 8),
             ...team.players.asMap().entries.map((entry) {
               final playerIndex = entry.key;
               final playerController = entry.value;

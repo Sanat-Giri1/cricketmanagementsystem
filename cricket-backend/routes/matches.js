@@ -53,6 +53,23 @@ router.put('/:id/toss', async (req, res) => {
   }
 });
 
+// update only match result (winner + margin) - called when a live match finishes
+router.put('/:id/result', async (req, res) => {
+  try {
+    console.log(`PUT /matches/${req.params.id}/result body:`, req.body);
+    const { winner, win_margin } = req.body;
+    const result = await pool.query(
+      'UPDATE matches SET winner = $1, win_margin = $2 WHERE match_id = $3 RETURNING *',
+      [winner || null, win_margin || null, req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Match not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('PUT /matches/:id/result error', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // update full match
 router.put('/:id', async (req, res) => {
   try {
@@ -68,12 +85,32 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// Delete a single match
 router.delete('/:id', async (req, res) => {
   try {
     const result = await pool.query('DELETE FROM matches WHERE match_id = $1 RETURNING *', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Match not found' });
     res.json({ message: 'Match deleted', match: result.rows[0] });
   } catch (err) {
+    console.error('DELETE /matches/:id error', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete all matches and related data (useful for clearing test data). This runs inside a transaction and deletes dependent records first.
+router.delete('/', async (req, res) => {
+  try {
+    await pool.query('BEGIN');
+    // Delete dependent records first to satisfy FK constraints
+    await pool.query('DELETE FROM batting_stats');
+    await pool.query('DELETE FROM bowling_stats');
+    await pool.query('DELETE FROM match_score');
+    await pool.query('DELETE FROM matches');
+    await pool.query('COMMIT');
+    res.json({ message: 'All matches and related records deleted' });
+  } catch (err) {
+    await pool.query('ROLLBACK').catch(() => {});
+    console.error('DELETE /matches error', err);
     res.status(500).json({ error: err.message });
   }
 });

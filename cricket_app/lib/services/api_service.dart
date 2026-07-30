@@ -1,8 +1,17 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:3000';
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:3000';
+    }
+
+    final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+    final host = isAndroid ? '10.0.2.2' : 'localhost';
+    return 'http://$host:3000';
+  }
 
   // ---------- TEAMS ----------
   static Future<List<dynamic>> getTeams() async {
@@ -20,7 +29,9 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'team_name': teamName, 'captain': captain, 'coach': coach}),
     );
-    if (response.statusCode != 201) throw Exception('Failed to add team');
+    if (response.statusCode != 201) {
+      throw Exception('Failed to add team: ${response.statusCode} - ${response.body}');
+    }
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
@@ -56,7 +67,9 @@ class ApiService {
         'player_name': name, 'age': age, 'jersey_no': jerseyNo, 'role': role, 'team_id': teamId,
       }),
     );
-    if (response.statusCode != 201) throw Exception('Failed to add player');
+    if (response.statusCode != 201) {
+      throw Exception('Failed to add player: ${response.statusCode} - ${response.body}');
+    }
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
@@ -109,7 +122,9 @@ class ApiService {
         'toss_decision': tossDecision,
       }),
     );
-    if (response.statusCode != 201) throw Exception('Failed to add match');
+    if (response.statusCode != 201) {
+      throw Exception('Failed to add match: ${response.statusCode} - ${response.body}');
+    }
   }
 
   static Future<void> updateMatch(int id, String matchDate, int team1Id, int team2Id, String venue, String winner, {int? tossWinnerTeamId, String? tossDecision}) async {
@@ -142,6 +157,19 @@ class ApiService {
     if (response.statusCode != 200) throw Exception('Failed to update match toss');
   }
 
+  // Update only match result (winner name + margin text), called when a live match finishes
+  static Future<void> updateMatchResult(int id, String winner, String winMargin) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/matches/$id/result'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'winner': winner,
+        'win_margin': winMargin,
+      }),
+    );
+    if (response.statusCode != 200) throw Exception('Failed to update match result');
+  }
+
   static Future<void> deleteMatch(int id) async {
     final response = await http.delete(Uri.parse('$baseUrl/matches/$id'));
     if (response.statusCode != 200) throw Exception('Failed to delete match');
@@ -157,25 +185,32 @@ class ApiService {
     }
   }
 
-  static Future<void> addBatting(int matchId, int playerId, int runs, int balls, int fours, int sixes, double strikeRate) async {
+  static Future<Map<String, dynamic>> addBatting(
+    int matchId, int playerId, int runs, int balls, int fours, int sixes, double strikeRate,
+    {bool isOut = false}
+  ) async {
     final response = await http.post(
       Uri.parse('$baseUrl/batting'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'match_id': matchId, 'player_id': playerId, 'runs': runs, 'balls': balls,
-        'fours': fours, 'sixes': sixes, 'strike_rate': strikeRate,
+        'fours': fours, 'sixes': sixes, 'strike_rate': strikeRate, 'is_out': isOut,
       }),
     );
     if (response.statusCode != 201) throw Exception('Failed to add batting record');
+    return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
-  static Future<void> updateBatting(int id, int matchId, int playerId, int runs, int balls, int fours, int sixes, double strikeRate) async {
+  static Future<void> updateBatting(
+    int id, int matchId, int playerId, int runs, int balls, int fours, int sixes, double strikeRate,
+    {bool isOut = false}
+  ) async {
     final response = await http.put(
       Uri.parse('$baseUrl/batting/$id'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'match_id': matchId, 'player_id': playerId, 'runs': runs, 'balls': balls,
-        'fours': fours, 'sixes': sixes, 'strike_rate': strikeRate,
+        'fours': fours, 'sixes': sixes, 'strike_rate': strikeRate, 'is_out': isOut,
       }),
     );
     if (response.statusCode != 200) throw Exception('Failed to update batting record');
@@ -196,7 +231,7 @@ class ApiService {
     }
   }
 
-  static Future<void> addBowling(int matchId, int playerId, double overs, int runsConceded, int wickets, double economy) async {
+  static Future<Map<String, dynamic>> addBowling(int matchId, int playerId, double overs, int runsConceded, int wickets, double economy) async {
     final response = await http.post(
       Uri.parse('$baseUrl/bowling'),
       headers: {'Content-Type': 'application/json'},
@@ -206,6 +241,7 @@ class ApiService {
       }),
     );
     if (response.statusCode != 201) throw Exception('Failed to add bowling record');
+    return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
   static Future<void> updateBowling(int id, int matchId, int playerId, double overs, int runsConceded, int wickets, double economy) async {
