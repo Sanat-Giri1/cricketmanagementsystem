@@ -144,81 +144,98 @@ class _MatchScoreScreenState extends State<MatchScoreScreen> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(_teamName(teamId), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text(
-                score != null ? '${score['runs']}/${score['wickets']}  (${score['overs']} ov)' : '-',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(color: Colors.grey.shade200, blurRadius: 8, offset: const Offset(0, 2)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.indigo.shade50,
+                borderRadius: BorderRadius.circular(10),
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          const Text('Batting', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black54)),
-          const SizedBox(height: 4),
-          if (battingForTeam.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Text('No batting data recorded.', style: TextStyle(color: Colors.grey)),
-            )
-          else
-            _statTable(
-              headers: const ['Batter', 'R', 'B', '4s', '6s', 'SR'],
-              columnWidths: const {
-                0: FlexColumnWidth(3),
-                1: FlexColumnWidth(1),
-                2: FlexColumnWidth(1),
-                3: FlexColumnWidth(1),
-                4: FlexColumnWidth(1),
-                5: FlexColumnWidth(1.4),
-              },
-              rows: battingForTeam.map((b) {
-                final sr = double.tryParse(b['strike_rate'].toString()) ?? 0.0;
-                final isOut = b['is_out'] == true;
-                return [
-                  '${_playerName(b['player_id'])}${isOut ? '' : ' *'}',
-                  '${b['runs']}',
-                  '${b['balls']}',
-                  '${b['fours']}',
-                  '${b['sixes']}',
-                  sr.toStringAsFixed(1),
-                ];
-              }).toList(),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_teamName(teamId), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(
+                    score != null ? '${score['runs']}/${score['wickets']}  (${score['overs']} ov)' : '-',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.indigo),
+                  ),
+                ],
+              ),
             ),
-          const SizedBox(height: 14),
-          const Text('Bowling', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black54)),
-          const SizedBox(height: 4),
-          if (bowlingForTeam.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 4),
-              child: Text('No bowling data recorded.', style: TextStyle(color: Colors.grey)),
-            )
-          else
-            _statTable(
-              headers: const ['Bowler', 'O', 'R', 'W', 'Econ'],
-              columnWidths: const {
-                0: FlexColumnWidth(3),
-                1: FlexColumnWidth(1),
-                2: FlexColumnWidth(1),
-                3: FlexColumnWidth(1),
-                4: FlexColumnWidth(1.4),
-              },
-              rows: bowlingForTeam.map((b) {
-                final econ = double.tryParse(b['economy'].toString()) ?? 0.0;
-                return [
-                  _playerName(b['player_id']),
-                  '${b['overs']}',
-                  '${b['runs_conceded']}',
-                  '${b['wickets']}',
-                  econ.toStringAsFixed(2),
-                ];
-              }).toList(),
-            ),
-        ],
+            const SizedBox(height: 10),
+            const Text('Batting', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black54)),
+            const SizedBox(height: 4),
+            if (battingForTeam.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 4),
+                child: Text('No batting data recorded.', style: TextStyle(color: Colors.grey)),
+              )
+            else
+              _statTable(
+                headers: const ['Batter', 'R', 'B', '4s', '6s', 'SR'],
+                columnWidths: const {
+                  0: FlexColumnWidth(3),
+                  1: FlexColumnWidth(1),
+                  2: FlexColumnWidth(1),
+                  3: FlexColumnWidth(1),
+                  4: FlexColumnWidth(1),
+                  5: FlexColumnWidth(1.4),
+                },
+                rows: battingForTeam.map((b) {
+                  final sr = double.tryParse(b['strike_rate'].toString()) ?? 0.0;
+                  final isOut = b['is_out'] == true;
+                  return [
+                    '${_playerName(b['player_id'])}${isOut ? '' : ' *'}',
+                    '${b['runs']}',
+                    '${b['balls']}',
+                    '${b['fours']}',
+                    '${b['sixes']}',
+                    sr.toStringAsFixed(1),
+                  ];
+                }).toList(),
+              ),
+            const SizedBox(height: 14),
+            const Text('Bowling', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black54)),
+            const SizedBox(height: 4),
+            if (bowlingForTeam.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 4),
+                child: Text('No bowling data recorded.', style: TextStyle(color: Colors.grey)),
+              )
+            else
+              _statTable(
+                headers: const ['Bowler', 'O', 'R', 'W', 'Econ'],
+                columnWidths: const {
+                  0: FlexColumnWidth(3),
+                  1: FlexColumnWidth(1),
+                  2: FlexColumnWidth(1),
+                  3: FlexColumnWidth(1),
+                  4: FlexColumnWidth(1.4),
+                },
+                rows: bowlingForTeam.map((b) {
+                  final econ = double.tryParse(b['economy'].toString()) ?? 0.0;
+                  return [
+                    _playerName(b['player_id']),
+                    '${b['overs']}',
+                    '${b['runs_conceded']}',
+                    '${b['wickets']}',
+                    econ.toStringAsFixed(2),
+                  ];
+                }).toList(),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -236,6 +253,8 @@ class _MatchScoreScreenState extends State<MatchScoreScreen> {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 2,
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(

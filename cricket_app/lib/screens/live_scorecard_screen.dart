@@ -2,6 +2,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
+int? resolveSelectedPlayerId(int? selectedId, List<dynamic> players) {
+  if (selectedId == null) {
+    if (players.isEmpty) return null;
+    return players.first['player_id'] as int;
+  }
+
+  final exists = players.any((player) => player['player_id'] == selectedId);
+  if (exists) return selectedId;
+
+  if (players.isEmpty) return null;
+  return players.first['player_id'] as int;
+}
+
 class LiveScorecardScreen extends StatefulWidget {
   final int matchId;
   final int team1Id;
@@ -57,6 +70,7 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
   }
 
   Future<void> _init() async {
+    final screenContext = context;
     setState(() => _loading = true);
     try {
       final teams = await ApiService.getTeams();
@@ -90,26 +104,30 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
       await Future.delayed(const Duration(milliseconds: 200));
       await _maybePromptForOpenersAndBowler();
 
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
       final retry = await showDialog<bool>(
-        context: context,
+        // ignore: use_build_context_synchronously
+        context: screenContext,
         barrierDismissible: false,
-        builder: (context) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: const Text('Failed to start live match'),
           content: Text('Could not load data from the server:\n$e'),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Retry')),
+            TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
+            ElevatedButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Retry')),
           ],
         ),
       );
       if (retry == true) {
         _init();
       } else {
-        if (Navigator.canPop(context)) Navigator.pop(context);
+        // ignore: use_build_context_synchronously
+        if (Navigator.canPop(screenContext)) Navigator.pop(screenContext);
       }
     }
   }
@@ -152,69 +170,95 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
   Future<void> _maybePromptForOpenersAndBowler() async {
     final score = _battingScore;
     if (score == null) return;
+
     final battingPlayers = _availableBatsmen(_battingTeamId);
-    if (score['striker_id'] == null || score['non_striker_id'] == null || score['current_bowler_id'] == null) {
-      await showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          int? striker = score['striker_id'];
-          int? nonStriker = score['non_striker_id'];
-          int? bowler = score['current_bowler_id'];
-          return StatefulBuilder(builder: (context, setState) {
-            return AlertDialog(
-              title: Text(_inningsNumber == 1 ? 'Select Openers & Bowler' : 'Select Openers & Bowler (2nd Innings)'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    DropdownButtonFormField<int>(
-                      decoration: const InputDecoration(labelText: 'Striker'),
-                      value: striker,
-                      items: battingPlayers.map<DropdownMenuItem<int>>((p) {
-                        return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
-                      }).toList(),
-                      onChanged: (v) => setState(() => striker = v),
-                    ),
-                    DropdownButtonFormField<int>(
-                      decoration: const InputDecoration(labelText: 'Non-striker'),
-                      value: nonStriker,
-                      items: battingPlayers.map<DropdownMenuItem<int>>((p) {
-                        return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
-                      }).toList(),
-                      onChanged: (v) => setState(() => nonStriker = v),
-                    ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<int>(
-                      decoration: const InputDecoration(labelText: 'Bowler'),
-                      value: bowler,
-                      items: _playersForTeam(_battingTeamId == widget.team1Id ? widget.team2Id : widget.team1Id)
-                          .map<DropdownMenuItem<int>>((p) {
-                        return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
-                      }).toList(),
-                      onChanged: (v) => setState(() => bowler = v),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                ElevatedButton(
-                  onPressed: () async {
-                    if (striker == null || nonStriker == null || bowler == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select all players')));
-                      return;
-                    }
-                    await _updatePlayers(strikerId: striker, nonStrikerId: nonStriker, bowlerId: bowler);
-                    if (context.mounted) Navigator.of(context).pop();
-                  },
-                  child: const Text('Start'),
-                ),
-              ],
-            );
-          });
-        },
+    final bowlingPlayers = _playersForTeam(_battingTeamId == widget.team1Id ? widget.team2Id : widget.team1Id);
+    final fallbackStriker = resolveSelectedPlayerId(score['striker_id'], battingPlayers);
+    final fallbackNonStriker = resolveSelectedPlayerId(score['non_striker_id'], battingPlayers);
+    final fallbackBowler = resolveSelectedPlayerId(score['current_bowler_id'], bowlingPlayers);
+
+    final hasValidSelections = fallbackStriker != null && fallbackNonStriker != null && fallbackBowler != null;
+    final needsPrompt = score['striker_id'] == null || score['non_striker_id'] == null || score['current_bowler_id'] == null;
+
+    if (needsPrompt && hasValidSelections) {
+      await _updatePlayers(
+        strikerId: fallbackStriker,
+        nonStrikerId: fallbackNonStriker,
+        bowlerId: fallbackBowler,
       );
+      return;
     }
+
+    if (!needsPrompt) return;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        int? striker = score['striker_id'];
+        int? nonStriker = score['non_striker_id'];
+        int? bowler = score['current_bowler_id'];
+        return StatefulBuilder(builder: (context, setState) {
+          return AlertDialog(
+            title: Text(_inningsNumber == 1 ? 'Select Openers & Bowler' : 'Select Openers & Bowler (2nd Innings)'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(labelText: 'Striker'),
+                    initialValue: striker ?? fallbackStriker,
+                    items: battingPlayers.map<DropdownMenuItem<int>>((p) {
+                      return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
+                    }).toList(),
+                    onChanged: (v) => setState(() => striker = v),
+                  ),
+                  DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(labelText: 'Non-striker'),
+                    initialValue: nonStriker ?? fallbackNonStriker,
+                    items: battingPlayers.map<DropdownMenuItem<int>>((p) {
+                      return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
+                    }).toList(),
+                    onChanged: (v) => setState(() => nonStriker = v),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<int>(
+                    decoration: const InputDecoration(labelText: 'Bowler'),
+                    initialValue: bowler ?? fallbackBowler,
+                    items: bowlingPlayers.map<DropdownMenuItem<int>>((p) {
+                      return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
+                    }).toList(),
+                    onChanged: (v) => setState(() => bowler = v),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () async {
+                  final dialogContext = context;
+                  final navigator = Navigator.of(dialogContext);
+                  final messenger = ScaffoldMessenger.of(dialogContext);
+                  final selectedStriker = striker ?? fallbackStriker;
+                  final selectedNonStriker = nonStriker ?? fallbackNonStriker;
+                  final selectedBowler = bowler ?? fallbackBowler;
+                  if (selectedStriker == null || selectedNonStriker == null || selectedBowler == null) {
+                    messenger.showSnackBar(const SnackBar(content: Text('Please select all players')));
+                    return;
+                  }
+                  await _updatePlayers(strikerId: selectedStriker, nonStrikerId: selectedNonStriker, bowlerId: selectedBowler);
+                  if (!mounted) return;
+                  if (navigator.canPop()) {
+                    navigator.pop();
+                  }
+                },
+                child: const Text('Start'),
+              ),
+            ],
+          );
+        });
+      },
+    );
   }
 
   Future<void> _refresh() async {
@@ -382,49 +426,63 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
     final totalBalls = _totalOvers * 6;
     if (currentBalls >= totalBalls) return;
 
-    if (score['striker_id'] == null || score['non_striker_id'] == null || score['current_bowler_id'] == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select striker, non-striker and bowler before scoring')));
+    final battingPlayers = _availableBatsmen(_battingTeamId);
+    final bowlingPlayers = _playersForTeam(_battingTeamId == widget.team1Id ? widget.team2Id : widget.team1Id);
+    final resolvedStrikerId = resolveSelectedPlayerId(score['striker_id'], battingPlayers);
+    final resolvedNonStrikerId = resolveSelectedPlayerId(score['non_striker_id'], battingPlayers);
+    final resolvedBowlerId = resolveSelectedPlayerId(score['current_bowler_id'], bowlingPlayers);
+
+    if (resolvedStrikerId == null || resolvedNonStrikerId == null || resolvedBowlerId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select striker, non-striker and bowler before scoring')));
+      }
       return;
     }
 
-    final strikerId = score['striker_id'] as int;
-    final bowlerId = score['current_bowler_id'] as int;
+    final strikerId = resolvedStrikerId;
+    final bowlerId = resolvedBowlerId;
 
     final newTeamRuns = (score['runs'] ?? 0) + runs;
     final newOvers = isExtra ? currentOvers : _addBallToOvers(currentOvers);
     final newBalls = _oversToBalls(newOvers);
 
-    int? striker = score['striker_id'];
-    int? nonStriker = score['non_striker_id'];
-    if (!isExtra && runs % 2 == 1 && striker != null && nonStriker != null) {
+    int? striker = resolvedStrikerId;
+    int? nonStriker = resolvedNonStrikerId;
+    if (!isExtra && runs % 2 == 1) {
       final temp = striker;
       striker = nonStriker;
       nonStriker = temp;
     }
 
     final overEnded = !isExtra && newBalls > currentBalls && (newBalls % 6 == 0);
-    final bowlerIdToSave = overEnded ? null : score['current_bowler_id'];
+    final bowlerIdToSave = overEnded ? null : resolvedBowlerId;
 
-    if (!isExtra) {
-      await _recordBatsmanRun(strikerId, runs, true);
-    }
-    await _recordBowlerBall(bowlerId, runs, !isExtra);
+    try {
+      if (!isExtra) {
+        await _recordBatsmanRun(strikerId, runs, true);
+      }
+      await _recordBowlerBall(bowlerId, runs, !isExtra);
 
-    await ApiService.updateMatchScore(
-      score['score_id'], widget.matchId, _battingTeamId, newTeamRuns, score['wickets'] ?? 0, newOvers,
-      strikerId: striker, nonStrikerId: nonStriker, currentBowlerId: bowlerIdToSave,
-    );
+      await ApiService.updateMatchScore(
+        score['score_id'], widget.matchId, _battingTeamId, newTeamRuns, score['wickets'] ?? 0, newOvers,
+        strikerId: striker, nonStrikerId: nonStriker, currentBowlerId: bowlerIdToSave,
+      );
 
-    await _refresh();
+      await _refresh();
 
-    if (overEnded && !_matchComplete) {
-      setState(() => _requiresBowler = true);
+      if (overEnded && !_matchComplete) {
+        setState(() => _requiresBowler = true);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Over complete — select next bowler')));
+        }
+      }
+
+      await _checkInningsProgress();
+    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Over complete — select next bowler')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save run: $e')));
       }
     }
-
-    await _checkInningsProgress();
   }
 
   Future<void> _addWicket() async {
@@ -437,18 +495,24 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
     final totalBalls = _totalOvers * 6;
     if (currentBalls >= totalBalls) return;
 
-    if (score['striker_id'] == null || score['non_striker_id'] == null || score['current_bowler_id'] == null) {
+    final battingPlayers = _availableBatsmen(_battingTeamId);
+    final bowlingPlayers = _playersForTeam(_battingTeamId == widget.team1Id ? widget.team2Id : widget.team1Id);
+    final resolvedStrikerId = resolveSelectedPlayerId(score['striker_id'], battingPlayers);
+    final resolvedNonStrikerId = resolveSelectedPlayerId(score['non_striker_id'], battingPlayers);
+    final resolvedBowlerId = resolveSelectedPlayerId(score['current_bowler_id'], bowlingPlayers);
+
+    if (resolvedStrikerId == null || resolvedNonStrikerId == null || resolvedBowlerId == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select striker, non-striker and bowler before scoring')));
       return;
     }
 
-    final strikerId = score['striker_id'] as int;
-    final bowlerId = score['current_bowler_id'] as int;
+    final strikerId = resolvedStrikerId;
+    final bowlerId = resolvedBowlerId;
 
     final newOvers = _addBallToOvers(currentOvers);
     final newBalls = _oversToBalls(newOvers);
     final overEnded = newBalls > currentBalls && (newBalls % 6 == 0);
-    final bowlerIdToSave = overEnded ? null : score['current_bowler_id'];
+    final bowlerIdToSave = overEnded ? null : resolvedBowlerId;
 
     await _markBatsmanOut(strikerId);
     await _recordBowlerBall(bowlerId, 0, true, wicket: true);
@@ -600,7 +664,9 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
     final wickets = score?['wickets'] ?? '-';
     final overs = score?['overs'] ?? '-';
     return Card(
-      color: isBatting ? Colors.green.shade50 : null,
+      color: isBatting ? Colors.green.shade50 : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      elevation: 2,
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -608,7 +674,7 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            Text('$runs/$wickets  ($overs ov)', style: const TextStyle(fontSize: 16)),
+            Text('$runs/$wickets  ($overs ov)', style: const TextStyle(fontSize: 16, color: Colors.indigo, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
@@ -616,9 +682,17 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
   }
 
   Widget _runButton(int runs, {bool isExtra = false, String? label}) {
-    return ElevatedButton(
-      onPressed: _matchComplete ? null : () => _addRuns(runs, isExtra: isExtra),
-      child: Text(label ?? (runs == 0 ? '0' : '+$runs')),
+    return Expanded(
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.indigo,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        onPressed: _matchComplete ? null : () => _addRuns(runs, isExtra: isExtra),
+        child: Text(label ?? (runs == 0 ? '0' : '+$runs')),
+      ),
     );
   }
 
@@ -714,7 +788,7 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
               const SizedBox(height: 8),
               DropdownButtonFormField<int>(
                 decoration: const InputDecoration(labelText: 'Striker'),
-                value: _validDropdownValue(score, 'striker_id', battingTeamPlayers),
+                initialValue: _validDropdownValue(score, 'striker_id', battingTeamPlayers),
                 items: battingTeamPlayers.map<DropdownMenuItem<int>>((p) {
                   return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
                 }).toList(),
@@ -722,7 +796,7 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
               ),
               DropdownButtonFormField<int>(
                 decoration: const InputDecoration(labelText: 'Non-striker'),
-                value: _validDropdownValue(score, 'non_striker_id', battingTeamPlayers),
+                initialValue: _validDropdownValue(score, 'non_striker_id', battingTeamPlayers),
                 items: battingTeamPlayers.map<DropdownMenuItem<int>>((p) {
                   return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
                 }).toList(),
@@ -736,16 +810,20 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
                 ),
               DropdownButtonFormField<int>(
                 decoration: const InputDecoration(labelText: 'Bowler'),
-                value: score?['current_bowler_id'],
+                initialValue: score?['current_bowler_id'],
                 items: bowlingTeamPlayers.map<DropdownMenuItem<int>>((p) {
                   return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
                 }).toList(),
                 onChanged: (v) => _updatePlayers(bowlerId: v),
               ),
               const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              GridView.count(
+                shrinkWrap: true,
+                crossAxisCount: 3,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                childAspectRatio: 1.8,
+                physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _runButton(0),
                   _runButton(1),
@@ -760,7 +838,12 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                       onPressed: _matchComplete ? null : _addWicket,
                       child: const Text('Wicket'),
                     ),
@@ -768,6 +851,12 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange.shade700,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                       onPressed: _matchComplete ? null : () => _addRuns(1, isExtra: true),
                       child: const Text('Wide/No-ball (+1)'),
                     ),

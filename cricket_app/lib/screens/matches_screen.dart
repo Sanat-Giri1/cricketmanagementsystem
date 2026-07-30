@@ -208,6 +208,8 @@ class _MatchesScreenState extends State<MatchesScreen> {
               final hasResult = match['winner'] != null && match['winner'].toString().isNotEmpty;
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                color: Colors.grey.shade50,
                 child: ListTile(
                   title: Text(
                     '${_teamName(match['team1_id'])} vs ${_teamName(match['team2_id'])}',
@@ -232,7 +234,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                     children: [
                       if (hasResult)
                         IconButton(
-                          icon: const Icon(Icons.leaderboard, color: Colors.amber),
+                          icon: Icon(Icons.leaderboard, color: Colors.amber.shade700),
                           tooltip: 'View scorecard',
                           onPressed: () {
                             Navigator.push(
@@ -244,7 +246,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                           },
                         ),
                       IconButton(
-                        icon: const Icon(Icons.live_tv, color: Colors.green),
+                        icon: Icon(Icons.live_tv, color: Colors.green.shade700),
                         onPressed: () {
                           // Ask for overs before starting live match
                           final oversController = TextEditingController(text: '20');
@@ -268,7 +270,7 @@ class _MatchesScreenState extends State<MatchesScreen> {
                                         const SizedBox(height: 12),
                                         DropdownButtonFormField<int>(
                                           decoration: const InputDecoration(labelText: 'Toss winner'),
-                                          value: tossWinner,
+                                          initialValue: tossWinner,
                                           items: [
                                             DropdownMenuItem<int>(value: match['team1_id'], child: Text(_teamName(match['team1_id']))),
                                             DropdownMenuItem<int>(value: match['team2_id'], child: Text(_teamName(match['team2_id']))),
@@ -318,19 +320,23 @@ class _MatchesScreenState extends State<MatchesScreen> {
                                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save toss: $e')));
                                           }
                                         }
-                                        if (context.mounted) Navigator.pop(context);
-                                        if (context.mounted) Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => LiveScorecardScreen(
-                                              matchId: match['match_id'],
-                                              team1Id: match['team1_id'],
-                                              team2Id: match['team2_id'],
-                                              totalOvers: overs,
-                                              initialBattingTeamId: initialBatting,
+                                        if (context.mounted) {
+                                          Navigator.pop(context);
+                                        }
+                                        if (context.mounted) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => LiveScorecardScreen(
+                                                matchId: match['match_id'],
+                                                team1Id: match['team1_id'],
+                                                team2Id: match['team2_id'],
+                                                totalOvers: overs,
+                                                initialBattingTeamId: initialBatting,
+                                              ),
                                             ),
-                                          ),
-                                        );
+                                          );
+                                        }
                                       },
                                       child: const Text('Start'),
                                     ),

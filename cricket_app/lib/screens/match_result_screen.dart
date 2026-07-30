@@ -95,23 +95,32 @@ class _MatchResultScreenState extends State<MatchResultScreen> {
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(_teamName(teamId), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                Text(
-                  score != null ? '${score['runs']}/${score['wickets']}  (${score['overs']} ov)' : '-',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_teamName(teamId), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.deepPurple)),
+                  Text(
+                    score != null ? '${score['runs']}/${score['wickets']}  (${score['overs']} ov)' : '-',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.blueAccent),
+                  ),
+                ],
+              ),
             ),
-            const Divider(height: 20),
-            const Text('Batting', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            const Text('Batting', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
             const SizedBox(height: 6),
             if (battingForTeam.isEmpty)
               const Padding(
@@ -155,7 +164,7 @@ class _MatchResultScreenState extends State<MatchResultScreen> {
                 ],
               ),
             const SizedBox(height: 16),
-            const Text('Bowling', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('Bowling', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
             const SizedBox(height: 6),
             if (bowlingForTeam.isEmpty)
               const Padding(
@@ -211,7 +220,9 @@ class _MatchResultScreenState extends State<MatchResultScreen> {
                     padding: const EdgeInsets.all(12),
                     children: [
                       Card(
-                        color: Colors.amber.shade100,
+                        color: Colors.amber.shade50,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 3,
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(

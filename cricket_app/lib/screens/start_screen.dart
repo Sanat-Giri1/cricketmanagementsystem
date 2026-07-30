@@ -9,50 +9,94 @@ class StartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Cricket Match Setup')),
-      body: Padding(
+      appBar: AppBar(title: const Text('Cricket Dashboard')),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Choose the match type to begin',
+              'Welcome to your cricket management workspace',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 8),
+            const Text(
+              'Manage teams, players, matches, and live scorecards from one place.',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
             const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TwoTeamMatchSetupScreen(),
-                  ),
-                );
-              },
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('Two Team Match', style: TextStyle(fontSize: 18)),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Start a new match',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Choose the match type to begin setup.'),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const TwoTeamMatchSetupScreen(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.group),
+                            label: const Text('Two Team Match'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const TournamentSetupScreen(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.emoji_events),
+                            label: const Text('Tournament'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TournamentSetupScreen(),
-                  ),
-                );
-              },
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('Tournament', style: TextStyle(fontSize: 18)),
+            const SizedBox(height: 24),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Management tools',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.dashboard),
+                      title: const Text('Open the management dashboard'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () => Navigator.pushNamed(context, '/dashboard'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Spacer(),
-            TextButton(
-              onPressed: () => Navigator.pushNamed(context, '/dashboard'),
-              child: const Text('Go to management dashboard'),
             ),
           ],
         ),
@@ -150,7 +194,7 @@ class _TwoTeamMatchSetupScreenState extends State<TwoTeamMatchSetupScreen> {
               decoration: InputDecoration(labelText: 'Player ${index + 1} name'),
             ),
           );
-        }).toList(),
+        }),
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
@@ -324,7 +368,7 @@ class _TournamentSetupScreenState extends State<TournamentSetupScreen> {
                   decoration: InputDecoration(labelText: 'Player ${playerIndex + 1} name'),
                 ),
               );
-            }).toList(),
+            }),
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
@@ -493,7 +537,7 @@ class _MatchSetupSummaryScreenState extends State<MatchSetupSummaryScreen> {
                           const SizedBox(height: 8),
                           const Text('Players:', style: TextStyle(fontWeight: FontWeight.w600)),
                           const SizedBox(height: 8),
-                          ...team.players.map((player) => Text('• $player')).toList(),
+                          ...team.players.map((player) => Text('• $player')),
                         ],
                       ),
                     ),

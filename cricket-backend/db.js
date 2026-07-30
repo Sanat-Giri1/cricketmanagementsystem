@@ -15,4 +15,13 @@ pool.on('connect', client => {
   });
 });
 
+pool.ensureBattingStatsSchema = async () => {
+  try {
+    await pool.query('ALTER TABLE batting_stats ADD COLUMN IF NOT EXISTS is_out boolean DEFAULT false;');
+  } catch (err) {
+    console.error('Failed to ensure batting_stats.is_out column:', err.message || err);
+    throw err;
+  }
+};
+
 module.exports = pool;

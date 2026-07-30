@@ -25,6 +25,7 @@ async function runStartupMigrations() {
     console.log('Running startup DB migrations...');
     await pool.query('ALTER TABLE matches ADD COLUMN IF NOT EXISTS toss_winner_team_id integer;');
     await pool.query("ALTER TABLE matches ADD COLUMN IF NOT EXISTS toss_decision character varying(50);");
+    await pool.ensureBattingStatsSchema();
     console.log('Startup DB migrations completed.');
   } catch (err) {
     console.error('Startup DB migration failed:', err.message || err);
