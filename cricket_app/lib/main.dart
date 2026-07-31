@@ -6,6 +6,7 @@ import 'screens/matches_screen.dart';
 import 'screens/batting_screen.dart';
 import 'screens/bowling_screen.dart';
 import 'screens/matchscore_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const CricketApp());
@@ -18,10 +19,7 @@ class CricketApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Cricket Management',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme,
       home: const StartScreen(),
       routes: {
         '/dashboard': (context) => const HomeNav(),
@@ -52,17 +50,16 @@ class _HomeNavState extends State<HomeNav> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_index],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _index,
-        onTap: (i) => setState(() => _index = i),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.groups), label: 'Teams'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Players'),
-          BottomNavigationBarItem(icon: Icon(Icons.sports_cricket), label: 'Matches'),
-          BottomNavigationBarItem(icon: Icon(Icons.sports_baseball), label: 'Batting'),
-          BottomNavigationBarItem(icon: Icon(Icons.sports_handball), label: 'Bowling'),
-          BottomNavigationBarItem(icon: Icon(Icons.scoreboard), label: 'Scores'),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: (i) => setState(() => _index = i),
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.groups_outlined), selectedIcon: Icon(Icons.groups), label: 'Teams'),
+          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Players'),
+          NavigationDestination(icon: Icon(Icons.sports_cricket_outlined), selectedIcon: Icon(Icons.sports_cricket), label: 'Matches'),
+          NavigationDestination(icon: Icon(Icons.sports_baseball_outlined), selectedIcon: Icon(Icons.sports_baseball), label: 'Batting'),
+          NavigationDestination(icon: Icon(Icons.sports_handball_outlined), selectedIcon: Icon(Icons.sports_handball), label: 'Bowling'),
+          NavigationDestination(icon: Icon(Icons.scoreboard_outlined), selectedIcon: Icon(Icons.scoreboard), label: 'Scores'),
         ],
       ),
     );

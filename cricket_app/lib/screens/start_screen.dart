@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/modern_widgets.dart';
 
 const int kMinPlayersPerTeam = 5;
 
@@ -9,96 +11,135 @@ class StartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Cricket Dashboard')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Welcome to your cricket management workspace',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
+            Text('Welcome to your cricket management workspace', style: AppText.h1),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Manage teams, players, matches, and live scorecards from one place.',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              style: AppText.body.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 24),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Start a new match',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text('Choose the match type to begin setup.'),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const TwoTeamMatchSetupScreen(),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.group),
-                            label: const Text('Two Team Match'),
-                          ),
+            AppSectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Start a new match', style: AppText.h2),
+                  const SizedBox(height: 6),
+                  Text('Choose the match type to begin setup.', style: AppText.body.copyWith(color: AppColors.textSecondary)),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _LaunchTile(
+                          icon: Icons.group,
+                          label: 'Two Team Match',
+                          color: AppColors.primary,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const TwoTeamMatchSetupScreen()),
+                            );
+                          },
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const TournamentSetupScreen(),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.emoji_events),
-                            label: const Text('Tournament'),
-                          ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _LaunchTile(
+                          icon: Icons.emoji_events,
+                          label: 'Tournament',
+                          color: AppColors.accent,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const TournamentSetupScreen()),
+                            );
+                          },
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Management tools',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            const SizedBox(height: 16),
+            AppSectionCard(
+              hoverElevate: true,
+              onTap: () => Navigator.pushNamed(context, '/dashboard'),
+              child: Row(
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(color: AppColors.primaryTint, borderRadius: BorderRadius.circular(AppRadius.md)),
+                    child: const Icon(Icons.dashboard, color: AppColors.primary),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Management tools', style: AppText.h3),
+                        const SizedBox(height: 2),
+                        Text('Open the management dashboard', style: AppText.caption),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.dashboard),
-                      title: const Text('Open the management dashboard'),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                      onTap: () => Navigator.pushNamed(context, '/dashboard'),
-                    ),
-                  ],
-                ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
+                ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LaunchTile extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _LaunchTile({required this.icon, required this.label, required this.color, required this.onTap});
+
+  @override
+  State<_LaunchTile> createState() => _LaunchTileState();
+}
+
+class _LaunchTileState extends State<_LaunchTile> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            color: _hovered ? widget.color.withValues(alpha: 0.14) : widget.color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: widget.color.withValues(alpha: 0.25)),
+          ),
+          child: Column(
+            children: [
+              Icon(widget.icon, color: widget.color, size: 26),
+              const SizedBox(height: 8),
+              Text(widget.label, style: AppText.bodyMedium.copyWith(color: widget.color)),
+            ],
+          ),
         ),
       ),
     );
@@ -173,75 +214,63 @@ class _TwoTeamMatchSetupScreenState extends State<TwoTeamMatchSetupScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    showAppSnackBar(context, message, isError: true);
   }
 
   Widget _buildPlayerFields(String title, List<TextEditingController> players) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 8),
-        ...players.asMap().entries.map((entry) {
-          final index = entry.key;
-          final controller = entry.value;
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: TextField(
-              controller: controller,
-              decoration: InputDecoration(labelText: 'Player ${index + 1} name'),
+    return AppSectionCard(
+      margin: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: AppText.h3),
+          const SizedBox(height: 10),
+          ...players.asMap().entries.map((entry) {
+            final index = entry.key;
+            final controller = entry.value;
+            return AppTextField(controller: controller, label: 'Player ${index + 1} name', icon: Icons.person_outline);
+          }),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => _addPlayer(players),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add player'),
             ),
-          );
-        }),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: () => _addPlayer(players),
-            icon: const Icon(Icons.add),
-            label: const Text('Add player'),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Two Team Match')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               'Enter team and player details for a two team match. Each team needs at least $kMinPlayersPerTeam players.',
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _team1NameController,
-              decoration: const InputDecoration(labelText: 'Team 1 name'),
+              style: AppText.body.copyWith(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _team2NameController,
-              decoration: const InputDecoration(labelText: 'Team 2 name'),
-            ),
-            const SizedBox(height: 24),
-            _buildPlayerFields('Team 1 players', _team1Players),
-            const SizedBox(height: 24),
-            _buildPlayerFields('Team 2 players', _team2Players),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: _submit,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 14),
-                child: Text('Continue', style: TextStyle(fontSize: 16)),
+            AppSectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AppTextField(controller: _team1NameController, label: 'Team 1 name', icon: Icons.groups_outlined),
+                  AppTextField(controller: _team2NameController, label: 'Team 2 name', icon: Icons.groups_outlined),
+                ],
               ),
             ),
+            _buildPlayerFields('Team 1 players', _team1Players),
+            _buildPlayerFields('Team 2 players', _team2Players),
+            const SizedBox(height: 24),
+            AppButton(label: 'Continue', onPressed: _submit, fullWidth: true),
           ],
         ),
       ),
@@ -334,51 +363,48 @@ class _TournamentSetupScreenState extends State<TournamentSetupScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    showAppSnackBar(context, message, isError: true);
   }
 
   Widget _buildTeamCard(int index) {
     final team = _teams[index];
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Team ${index + 1}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 12),
-            TextField(
-              controller: team.nameController,
-              decoration: InputDecoration(labelText: 'Team ${index + 1} name'),
-            ),
-            const SizedBox(height: 16),
-            Text('Needs at least $kMinPlayersPerTeam players', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            const SizedBox(height: 8),
-            ...team.players.asMap().entries.map((entry) {
-              final playerIndex = entry.key;
-              final playerController = entry.value;
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: TextField(
-                  controller: playerController,
-                  decoration: InputDecoration(labelText: 'Player ${playerIndex + 1} name'),
-                ),
-              );
-            }),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: () => _addPlayer(index),
-                icon: const Icon(Icons.add),
-                label: const Text('Add player'),
+    return AppSectionCard(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: AppColors.primaryTint, borderRadius: BorderRadius.circular(AppRadius.sm)),
+                child: Text('${index + 1}', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
               ),
+              const SizedBox(width: 10),
+              Text('Team ${index + 1}', style: AppText.h3),
+            ],
+          ),
+          const SizedBox(height: 14),
+          AppTextField(controller: team.nameController, label: 'Team ${index + 1} name', icon: Icons.groups_outlined),
+          const SizedBox(height: 4),
+          Text('Needs at least $kMinPlayersPerTeam players', style: AppText.caption),
+          const SizedBox(height: 8),
+          ...team.players.asMap().entries.map((entry) {
+            final playerIndex = entry.key;
+            final playerController = entry.value;
+            return AppTextField(controller: playerController, label: 'Player ${playerIndex + 1} name', icon: Icons.person_outline);
+          }),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => _addPlayer(index),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Add player'),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -386,42 +412,49 @@ class _TournamentSetupScreenState extends State<TournamentSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Tournament Setup')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               'Enter a number of teams, then provide each team name and player names.',
-              style: TextStyle(fontSize: 16),
+              style: AppText.body.copyWith(color: AppColors.textSecondary),
             ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                const Text('Teams: ', style: TextStyle(fontSize: 16)),
-                const SizedBox(width: 8),
-                DropdownButton<int>(
-                  value: _teamCount,
-                  items: List.generate(8, (index) => index + 2)
-                      .map((count) => DropdownMenuItem(value: count, child: Text(count.toString())))
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) _updateTeamCount(value);
-                  },
-                ),
-              ],
+            const SizedBox(height: 16),
+            AppSectionCard(
+              child: Row(
+                children: [
+                  Text('Teams', style: AppText.bodyMedium),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<int>(
+                        value: _teamCount,
+                        items: List.generate(8, (index) => index + 2)
+                            .map((count) => DropdownMenuItem(value: count, child: Text(count.toString())))
+                            .toList(),
+                        onChanged: (value) {
+                          if (value != null) _updateTeamCount(value);
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             ...List.generate(_teamCount, (index) => _buildTeamCard(index)),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _submit,
-              child: const Padding(
-                padding: EdgeInsets.symmetric(vertical: 14),
-                child: Text('Continue', style: TextStyle(fontSize: 16)),
-              ),
-            ),
+            const SizedBox(height: 8),
+            AppButton(label: 'Continue', onPressed: _submit, fullWidth: true),
           ],
         ),
       ),
@@ -494,9 +527,7 @@ class _MatchSetupSummaryScreenState extends State<MatchSetupSummaryScreen> {
       Navigator.pushReplacementNamed(context, '/dashboard');
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save setup: $error')),
-        );
+        showAppSnackBar(context, 'Failed to save setup: $error', isError: true);
       }
     } finally {
       if (mounted) {
@@ -510,53 +541,69 @@ class _MatchSetupSummaryScreenState extends State<MatchSetupSummaryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: Text(widget.title)),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Review your setup before continuing.',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
+            Text('Review your setup before continuing.', style: AppText.body.copyWith(color: AppColors.textSecondary)),
+            const SizedBox(height: 16),
             Expanded(
               child: ListView.builder(
                 itemCount: widget.teams.length,
                 itemBuilder: (context, index) {
                   final team = widget.teams[index];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(team.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 8),
-                          const Text('Players:', style: TextStyle(fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 8),
-                          ...team.players.map((player) => Text('• $player')),
-                        ],
-                      ),
+                  return AppSectionCard(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 18,
+                              backgroundColor: AppColors.primaryTint,
+                              child: Text(
+                                team.name.isNotEmpty ? team.name[0].toUpperCase() : '?',
+                                style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text(team.name, style: AppText.h3)),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text('Players', style: AppText.label),
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: team.players
+                              .map((player) => Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.background,
+                                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                                      border: Border.all(color: AppColors.border),
+                                    ),
+                                    child: Text(player, style: AppText.caption),
+                                  ))
+                              .toList(),
+                        ),
+                      ],
                     ),
                   );
                 },
               ),
             ),
-            ElevatedButton(
+            const SizedBox(height: 8),
+            AppButton(
+              label: 'Save and open management dashboard',
               onPressed: _isSaving ? null : _saveSetup,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                child: _isSaving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('Save and open management dashboard', style: TextStyle(fontSize: 16)),
-              ),
+              loading: _isSaving,
+              fullWidth: true,
             ),
           ],
         ),

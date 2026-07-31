@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/modern_widgets.dart';
 
 class MatchScoreScreen extends StatefulWidget {
   const MatchScoreScreen({super.key});
@@ -109,31 +111,49 @@ class _MatchScoreScreenState extends State<MatchScoreScreen> {
     return _bowling.where((b) => b['match_id'] == matchId && teamPlayerIds.contains(b['player_id'])).toList();
   }
 
+  Widget _statHeaderCell(String text) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text(text, style: AppText.label),
+      );
+
+  Widget _statCell(String text, {bool emphasize = false}) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Text(text, style: emphasize ? AppText.bodyMedium : AppText.body),
+      );
+
+  TableRow _zebraRow(List<Widget> cells, bool isEven) {
+    return TableRow(
+      decoration: BoxDecoration(color: isEven ? AppColors.rowAlt : Colors.transparent),
+      children: cells,
+    );
+  }
+
   Widget _statTable({
     required List<String> headers,
     required List<List<String>> rows,
     required Map<int, TableColumnWidth> columnWidths,
   }) {
-    return Table(
-      columnWidths: columnWidths,
-      children: [
-        TableRow(
-          children: headers
-              .map((h) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(h, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ))
-              .toList(),
-        ),
-        ...rows.map((row) => TableRow(
-              children: row
-                  .map((cell) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Text(cell),
-                      ))
-                  .toList(),
-            )),
-      ],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.sm),
+      child: Table(
+        columnWidths: columnWidths,
+        children: [
+          TableRow(
+            decoration: const BoxDecoration(color: AppColors.background),
+            children: headers.map((h) => _statHeaderCell(h)).toList(),
+          ),
+          ...List.generate(rows.length, (i) {
+            final row = rows[i];
+            return _zebraRow(
+              [
+                _statCell(row.first, emphasize: true),
+                ...row.skip(1).map((cell) => _statCell(cell)),
+              ],
+              i.isEven,
+            );
+          }),
+        ],
+      ),
     );
   }
 
@@ -145,41 +165,39 @@ class _MatchScoreScreenState extends State<MatchScoreScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(color: Colors.grey.shade200, blurRadius: 8, offset: const Offset(0, 2)),
-          ],
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.indigo.shade50,
-                borderRadius: BorderRadius.circular(10),
+                color: AppColors.primaryTint,
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(_teamName(teamId), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(_teamName(teamId), style: AppText.h3.copyWith(color: AppColors.primaryDark)),
                   Text(
                     score != null ? '${score['runs']}/${score['wickets']}  (${score['overs']} ov)' : '-',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.indigo),
+                    style: AppText.h3.copyWith(color: AppColors.primary),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 10),
-            const Text('Batting', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black54)),
+            const SizedBox(height: 14),
+            Text('Batting', style: AppText.label),
             const SizedBox(height: 4),
             if (battingForTeam.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 4),
-                child: Text('No batting data recorded.', style: TextStyle(color: Colors.grey)),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text('No batting data recorded.', style: AppText.caption),
               )
             else
               _statTable(
@@ -205,13 +223,13 @@ class _MatchScoreScreenState extends State<MatchScoreScreen> {
                   ];
                 }).toList(),
               ),
-            const SizedBox(height: 14),
-            const Text('Bowling', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black54)),
+            const SizedBox(height: 16),
+            Text('Bowling', style: AppText.label),
             const SizedBox(height: 4),
             if (bowlingForTeam.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 4),
-                child: Text('No bowling data recorded.', style: TextStyle(color: Colors.grey)),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text('No bowling data recorded.', style: AppText.caption),
               )
             else
               _statTable(
@@ -251,19 +269,23 @@ class _MatchScoreScreenState extends State<MatchScoreScreen> {
         ? 'Match tied'
         : '$winner won${margin != null && margin.isNotEmpty ? ' by $margin' : ''}';
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 2,
+    return AppSectionCard(
+      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
+      padding: EdgeInsets.zero,
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          shape: const RoundedRectangleBorder(side: BorderSide.none),
           title: Text(
             '${_teamName(team1Id)} vs ${_teamName(team2Id)}',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: AppText.h3,
           ),
-          subtitle: Text('$dateStr  |  ${match['venue'] ?? '-'}  |  $resultLine'),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text('$dateStr  •  ${match['venue'] ?? '-'}  •  $resultLine', style: AppText.caption),
+          ),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           children: [
             _teamScorecard(matchId, team1Id),
             const Divider(),
@@ -277,26 +299,33 @@ class _MatchScoreScreenState extends State<MatchScoreScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Match Scores')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppLoadingState(message: 'Loading match scores…')
           : _error != null
-              ? Center(child: Text('Error: $_error'))
+              ? AppErrorState(message: _error!, onRetry: _load)
               : RefreshIndicator(
                   onRefresh: _load,
                   child: _finishedMatches.isEmpty
-                      ? ListView(
-                          children: const [
-                            Padding(
-                              padding: EdgeInsets.only(top: 80),
-                              child: Center(child: Text('No completed matches yet.')),
-                            ),
-                          ],
+                      ? const AppEmptyState(
+                          icon: Icons.scoreboard_outlined,
+                          title: 'No completed matches yet',
+                          subtitle: 'Finished fixtures will appear here with full scorecards.',
                         )
-                      : ListView.builder(
-                          padding: const EdgeInsets.only(top: 8, bottom: 16),
-                          itemCount: _finishedMatches.length,
-                          itemBuilder: (context, index) => _matchCard(_finishedMatches[index]),
+                      : ListView(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                          children: [
+                            const AppPageHeader(
+                              title: 'Result Scorecards',
+                              subtitle: 'Review completed matches with batting and bowling details.',
+                            ),
+                            const SizedBox(height: 16),
+                            ..._finishedMatches.map((match) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: _matchCard(match),
+                                )),
+                          ],
                         ),
                 ),
     );

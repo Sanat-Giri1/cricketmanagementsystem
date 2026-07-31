@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/modern_widgets.dart';
 
 int? resolveSelectedPlayerId(int? selectedId, List<dynamic> players) {
   if (selectedId == null) {
@@ -119,7 +121,7 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
           content: Text('Could not load data from the server:\n$e'),
           actions: [
             TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: const Text('Cancel')),
-            ElevatedButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: const Text('Retry')),
+            AppButton(label: 'Retry', onPressed: () => Navigator.of(dialogContext).pop(true)),
           ],
         ),
       );
@@ -200,50 +202,60 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
         int? bowler = score['current_bowler_id'];
         return StatefulBuilder(builder: (context, setState) {
           return AlertDialog(
-            title: Text(_inningsNumber == 1 ? 'Select Openers & Bowler' : 'Select Openers & Bowler (2nd Innings)'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<int>(
-                    decoration: const InputDecoration(labelText: 'Striker'),
-                    initialValue: striker ?? fallbackStriker,
-                    items: battingPlayers.map<DropdownMenuItem<int>>((p) {
-                      return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
-                    }).toList(),
-                    onChanged: (v) => setState(() => striker = v),
-                  ),
-                  DropdownButtonFormField<int>(
-                    decoration: const InputDecoration(labelText: 'Non-striker'),
-                    initialValue: nonStriker ?? fallbackNonStriker,
-                    items: battingPlayers.map<DropdownMenuItem<int>>((p) {
-                      return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
-                    }).toList(),
-                    onChanged: (v) => setState(() => nonStriker = v),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<int>(
-                    decoration: const InputDecoration(labelText: 'Bowler'),
-                    initialValue: bowler ?? fallbackBowler,
-                    items: bowlingPlayers.map<DropdownMenuItem<int>>((p) {
-                      return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
-                    }).toList(),
-                    onChanged: (v) => setState(() => bowler = v),
-                  ),
-                ],
+            title: Text(
+              _inningsNumber == 1 ? 'Select Openers & Bowler' : 'Select Openers & Bowler (2nd Innings)',
+              style: AppText.h2,
+            ),
+            content: SizedBox(
+              width: 420,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AppDropdown<int>(
+                      label: 'Striker',
+                      icon: Icons.sports_cricket,
+                      value: striker ?? fallbackStriker,
+                      items: battingPlayers.map<DropdownMenuItem<int>>((p) {
+                        return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
+                      }).toList(),
+                      onChanged: (v) => setState(() => striker = v),
+                    ),
+                    AppDropdown<int>(
+                      label: 'Non-striker',
+                      icon: Icons.person_outline,
+                      value: nonStriker ?? fallbackNonStriker,
+                      items: battingPlayers.map<DropdownMenuItem<int>>((p) {
+                        return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
+                      }).toList(),
+                      onChanged: (v) => setState(() => nonStriker = v),
+                    ),
+                    AppDropdown<int>(
+                      label: 'Bowler',
+                      icon: Icons.sports_baseball_outlined,
+                      value: bowler ?? fallbackBowler,
+                      items: bowlingPlayers.map<DropdownMenuItem<int>>((p) {
+                        return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
+                      }).toList(),
+                      onChanged: (v) => setState(() => bowler = v),
+                    ),
+                  ],
+                ),
               ),
             ),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             actions: [
-              ElevatedButton(
+              AppButton(
+                label: 'Start',
+                fullWidth: false,
                 onPressed: () async {
                   final dialogContext = context;
                   final navigator = Navigator.of(dialogContext);
-                  final messenger = ScaffoldMessenger.of(dialogContext);
                   final selectedStriker = striker ?? fallbackStriker;
                   final selectedNonStriker = nonStriker ?? fallbackNonStriker;
                   final selectedBowler = bowler ?? fallbackBowler;
                   if (selectedStriker == null || selectedNonStriker == null || selectedBowler == null) {
-                    messenger.showSnackBar(const SnackBar(content: Text('Please select all players')));
+                    showAppSnackBar(dialogContext, 'Please select all players', isError: true);
                     return;
                   }
                   await _updatePlayers(strikerId: selectedStriker, nonStrikerId: selectedNonStriker, bowlerId: selectedBowler);
@@ -252,7 +264,6 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
                     navigator.pop();
                   }
                 },
-                child: const Text('Start'),
               ),
             ],
           );
@@ -434,7 +445,7 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
 
     if (resolvedStrikerId == null || resolvedNonStrikerId == null || resolvedBowlerId == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select striker, non-striker and bowler before scoring')));
+        showAppSnackBar(context, 'Please select striker, non-striker and bowler before scoring', isError: true);
       }
       return;
     }
@@ -473,14 +484,14 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
       if (overEnded && !_matchComplete) {
         setState(() => _requiresBowler = true);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Over complete — select next bowler')));
+          showAppSnackBar(context, 'Over complete — select next bowler');
         }
       }
 
       await _checkInningsProgress();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to save run: $e')));
+        showAppSnackBar(context, 'Failed to save run: $e', isError: true);
       }
     }
   }
@@ -502,7 +513,7 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
     final resolvedBowlerId = resolveSelectedPlayerId(score['current_bowler_id'], bowlingPlayers);
 
     if (resolvedStrikerId == null || resolvedNonStrikerId == null || resolvedBowlerId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select striker, non-striker and bowler before scoring')));
+      showAppSnackBar(context, 'Please select striker, non-striker and bowler before scoring', isError: true);
       return;
     }
 
@@ -530,7 +541,7 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
     if (overEnded && !isAllOut && !_matchComplete) {
       setState(() => _requiresBowler = true);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Over complete — select next bowler')));
+        showAppSnackBar(context, 'Over complete — select next bowler');
       }
     }
 
@@ -562,7 +573,7 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
                 '${_teamName(nextTeamId)} needs ${currentRuns + 1} runs to win.',
               ),
               actions: [
-                ElevatedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Start 2nd Innings')),
+                AppButton(label: 'Start 2nd Innings', onPressed: () => Navigator.of(context).pop()),
               ],
             ),
           );
@@ -637,7 +648,7 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
         builder: (context) => AlertDialog(
           title: const Text('Match Complete'),
           content: Text(result),
-          actions: [ElevatedButton(onPressed: () => Navigator.of(context).pop(), child: const Text('OK'))],
+          actions: [AppButton(label: 'OK', onPressed: () => Navigator.of(context).pop())],
         ),
       );
     }
@@ -663,36 +674,38 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
     final runs = score?['runs'] ?? '-';
     final wickets = score?['wickets'] ?? '-';
     final overs = score?['overs'] ?? '-';
-    return Card(
-      color: isBatting ? Colors.green.shade50 : Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            Text('$runs/$wickets  ($overs ov)', style: const TextStyle(fontSize: 16, color: Colors.indigo, fontWeight: FontWeight.w600)),
-          ],
-        ),
+    return AppSectionCard(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              if (isBatting)
+                Container(
+                  width: 8,
+                  height: 8,
+                  margin: const EdgeInsets.only(right: 10),
+                  decoration: const BoxDecoration(color: AppColors.accent, shape: BoxShape.circle),
+                ),
+              Text(label, style: AppText.h3),
+            ],
+          ),
+          Text(
+            '$runs/$wickets  ($overs ov)',
+            style: AppText.h3.copyWith(color: AppColors.primary, fontSize: 17),
+          ),
+        ],
       ),
     );
   }
 
   Widget _runButton(int runs, {bool isExtra = false, String? label}) {
-    return Expanded(
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.indigo,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        onPressed: _matchComplete ? null : () => _addRuns(runs, isExtra: isExtra),
-        child: Text(label ?? (runs == 0 ? '0' : '+$runs')),
-      ),
+    return AppButton(
+      label: label ?? (runs == 0 ? '0' : '+$runs'),
+      onPressed: _matchComplete ? null : () => _addRuns(runs, isExtra: isExtra),
+      fullWidth: true,
     );
   }
 
@@ -706,40 +719,74 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
     final bowlingForTeam = _bowlingRecords.where((b) =>
         bowlingTeamPlayers.any((p) => p['player_id'] == b['player_id'])).toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Divider(height: 24),
-        const Text('Batting', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        const SizedBox(height: 6),
-        if (battingForTeam.isEmpty) const Text('No batsmen have faced a ball yet.'),
-        ...battingForTeam.map((b) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Text(
-                '${_playerName(b['player_id'])}: ${b['runs']} (${b['balls']}b) '
-                '4s:${b['fours']} 6s:${b['sixes']} SR:${(double.tryParse(b['strike_rate'].toString()) ?? 0).toStringAsFixed(1)}'
-                '${b['is_out'] == true ? '  (out)' : '  (not out)'}',
-              ),
-            )),
-        const SizedBox(height: 16),
-        const Text('Bowling', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        const SizedBox(height: 6),
-        if (bowlingForTeam.isEmpty) const Text('No bowler has bowled yet.'),
-        ...bowlingForTeam.map((b) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Text(
-                '${_playerName(b['player_id'])}: ${b['overs']}-${b['runs_conceded']}-${b['wickets']} '
-                'Econ:${(double.tryParse(b['economy'].toString()) ?? 0).toStringAsFixed(2)}',
-              ),
-            )),
-      ],
+    return AppSectionCard(
+      margin: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Batting', style: AppText.label),
+          const SizedBox(height: 8),
+          if (battingForTeam.isEmpty)
+            Text('No batsmen have faced a ball yet.', style: AppText.caption)
+          else
+            ...battingForTeam.map((b) {
+              final sr = (double.tryParse(b['strike_rate'].toString()) ?? 0).toStringAsFixed(1);
+              final isOut = b['is_out'] == true;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text('${_playerName(b['player_id'])}', style: AppText.bodyMedium),
+                    ),
+                    Text(
+                      '${b['runs']} (${b['balls']}b) • 4s:${b['fours']} 6s:${b['sixes']} • SR:$sr',
+                      style: AppText.caption,
+                    ),
+                    const SizedBox(width: 8),
+                    AppBadge(
+                      label: isOut ? 'out' : 'not out',
+                      color: isOut ? AppColors.error : AppColors.success,
+                    ),
+                  ],
+                ),
+              );
+            }),
+          const SizedBox(height: 18),
+          Text('Bowling', style: AppText.label),
+          const SizedBox(height: 8),
+          if (bowlingForTeam.isEmpty)
+            Text('No bowler has bowled yet.', style: AppText.caption)
+          else
+            ...bowlingForTeam.map((b) {
+              final econ = (double.tryParse(b['economy'].toString()) ?? 0).toStringAsFixed(2);
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text('${_playerName(b['player_id'])}', style: AppText.bodyMedium),
+                    ),
+                    Text(
+                      '${b['overs']}-${b['runs_conceded']}-${b['wickets']} • Econ:$econ',
+                      style: AppText.caption,
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: const AppLoadingState(message: 'Setting up live scorecard…'),
+      );
     }
 
     final battingTeamPlayers = _availableBatsmen(_battingTeamId);
@@ -760,110 +807,146 @@ class _LiveScorecardScreenState extends State<LiveScorecardScreen> {
     }
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Live Scorecard')),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           children: [
             if (_matchComplete)
-              Card(
-                color: Colors.amber.shade100,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(_resultText ?? 'Match complete', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.successTint,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.emoji_events_outlined, color: AppColors.success),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _resultText ?? 'Match complete',
+                        style: AppText.h3.copyWith(color: const Color(0xFF166534)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             _scoreCard(_teamName(widget.team1Id), _team1Score, _battingTeamId == widget.team1Id && !_matchComplete),
             _scoreCard(_teamName(widget.team2Id), _team2Score, _battingTeamId == widget.team2Id && !_matchComplete),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             if (targetLine != null)
               Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(targetLine, style: const TextStyle(fontStyle: FontStyle.italic)),
+                padding: const EdgeInsets.only(bottom: 8, top: 4),
+                child: Text(targetLine, style: AppText.body.copyWith(fontStyle: FontStyle.italic, color: AppColors.textSecondary)),
               ),
             if (!_matchComplete) ...[
-              Text('Now batting: ${_teamName(_battingTeamId)} (Innings $_inningsNumber)',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 8),
-              DropdownButtonFormField<int>(
-                decoration: const InputDecoration(labelText: 'Striker'),
-                initialValue: _validDropdownValue(score, 'striker_id', battingTeamPlayers),
-                items: battingTeamPlayers.map<DropdownMenuItem<int>>((p) {
-                  return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
-                }).toList(),
-                onChanged: (v) => _updatePlayers(strikerId: v),
-              ),
-              DropdownButtonFormField<int>(
-                decoration: const InputDecoration(labelText: 'Non-striker'),
-                initialValue: _validDropdownValue(score, 'non_striker_id', battingTeamPlayers),
-                items: battingTeamPlayers.map<DropdownMenuItem<int>>((p) {
-                  return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
-                }).toList(),
-                onChanged: (v) => _updatePlayers(nonStrikerId: v),
-              ),
-              const SizedBox(height: 8),
-              if (_requiresBowler)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text('Select bowler for this over', style: TextStyle(color: Colors.red.shade700)),
+              AppSectionCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(color: AppColors.primaryTint, borderRadius: BorderRadius.circular(AppRadius.pill)),
+                          child: Text('Innings $_inningsNumber', style: AppText.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700)),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text('Now batting: ${_teamName(_battingTeamId)}', style: AppText.h3),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    AppDropdown<int>(
+                      label: 'Striker',
+                      icon: Icons.sports_cricket,
+                      value: _validDropdownValue(score, 'striker_id', battingTeamPlayers),
+                      items: battingTeamPlayers.map<DropdownMenuItem<int>>((p) {
+                        return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
+                      }).toList(),
+                      onChanged: (v) => _updatePlayers(strikerId: v),
+                    ),
+                    AppDropdown<int>(
+                      label: 'Non-striker',
+                      icon: Icons.person_outline,
+                      value: _validDropdownValue(score, 'non_striker_id', battingTeamPlayers),
+                      items: battingTeamPlayers.map<DropdownMenuItem<int>>((p) {
+                        return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
+                      }).toList(),
+                      onChanged: (v) => _updatePlayers(nonStrikerId: v),
+                    ),
+                    if (_requiresBowler)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.info_outline, size: 16, color: AppColors.warning),
+                            const SizedBox(width: 6),
+                            Text('Select bowler for this over', style: AppText.caption.copyWith(color: AppColors.warning)),
+                          ],
+                        ),
+                      ),
+                    AppDropdown<int>(
+                      label: 'Bowler',
+                      icon: Icons.sports_baseball_outlined,
+                      value: score?['current_bowler_id'],
+                      items: bowlingTeamPlayers.map<DropdownMenuItem<int>>((p) {
+                        return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
+                      }).toList(),
+                      onChanged: (v) => _updatePlayers(bowlerId: v),
+                    ),
+                    const SizedBox(height: 4),
+                    GridView.count(
+                      shrinkWrap: true,
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 1.9,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        _runButton(0),
+                        _runButton(1),
+                        _runButton(2),
+                        _runButton(3),
+                        _runButton(4),
+                        _runButton(6),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppButton(
+                            label: 'Wicket',
+                            variant: AppButtonVariant.danger,
+                            icon: Icons.sports_cricket_outlined,
+                            onPressed: _matchComplete ? null : _addWicket,
+                            fullWidth: true,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: AppButton(
+                            label: 'Wide/No-ball (+1)',
+                            variant: AppButtonVariant.secondary,
+                            onPressed: _matchComplete ? null : () => _addRuns(1, isExtra: true),
+                            fullWidth: true,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              DropdownButtonFormField<int>(
-                decoration: const InputDecoration(labelText: 'Bowler'),
-                initialValue: score?['current_bowler_id'],
-                items: bowlingTeamPlayers.map<DropdownMenuItem<int>>((p) {
-                  return DropdownMenuItem<int>(value: p['player_id'], child: Text(p['player_name']));
-                }).toList(),
-                onChanged: (v) => _updatePlayers(bowlerId: v),
-              ),
-              const SizedBox(height: 16),
-              GridView.count(
-                shrinkWrap: true,
-                crossAxisCount: 3,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 1.8,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  _runButton(0),
-                  _runButton(1),
-                  _runButton(2),
-                  _runButton(3),
-                  _runButton(4),
-                  _runButton(6),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: _matchComplete ? null : _addWicket,
-                      child: const Text('Wicket'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange.shade700,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: _matchComplete ? null : () => _addRuns(1, isExtra: true),
-                      child: const Text('Wide/No-ball (+1)'),
-                    ),
-                  ),
-                ],
               ),
             ],
+            const SizedBox(height: 16),
             _liveStatsSection(),
           ],
         ),

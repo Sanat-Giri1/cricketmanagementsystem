@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/modern_widgets.dart';
 
 class PlayersScreen extends StatefulWidget {
   const PlayersScreen({super.key});
@@ -11,12 +13,33 @@ class PlayersScreen extends StatefulWidget {
 class _PlayersScreenState extends State<PlayersScreen> {
   late Future<List<dynamic>> _playersFuture;
   List<dynamic> _teams = [];
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  // Sample data shown only when the backend has no players yet, so the screen
+  // never looks broken/empty during a demo. These are never sent to the API.
+  static const List<Map<String, dynamic>> _demoPlayers = [
+    {'player_id': -1, 'player_name': 'Virat Kohli', 'age': 36, 'jersey_no': 18, 'role': 'Batsman', 'team_id': -1, 'team_name': 'India'},
+    {'player_id': -2, 'player_name': 'Jasprit Bumrah', 'age': 31, 'jersey_no': 93, 'role': 'Bowler', 'team_id': -1, 'team_name': 'India'},
+    {'player_id': -3, 'player_name': 'Steve Smith', 'age': 36, 'jersey_no': 49, 'role': 'Batsman', 'team_id': -2, 'team_name': 'Australia'},
+    {'player_id': -4, 'player_name': 'Mitchell Starc', 'age': 35, 'jersey_no': 56, 'role': 'Bowler', 'team_id': -2, 'team_name': 'Australia'},
+    {'player_id': -5, 'player_name': 'Joe Root', 'age': 34, 'jersey_no': 66, 'role': 'Batsman', 'team_id': -3, 'team_name': 'England'},
+  ];
 
   @override
   void initState() {
     super.initState();
     _loadPlayers();
     _loadTeamsForDropdown();
+    _searchController.addListener(() {
+      setState(() => _query = _searchController.text.trim().toLowerCase());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _loadPlayers() {
@@ -32,6 +55,24 @@ class _PlayersScreenState extends State<PlayersScreen> {
     });
   }
 
+  String _teamName(int? id) {
+    if (id == null) return '-';
+    for (final t in _teams) {
+      if (t['team_id'] == id) return t['team_name'];
+    }
+    return 'Team $id';
+  }
+
+  List<dynamic> _filtered(List<dynamic> players) {
+    if (_query.isEmpty) return players;
+    return players.where((p) {
+      final name = (p['player_name'] ?? '').toString().toLowerCase();
+      final role = (p['role'] ?? '').toString().toLowerCase();
+      final team = _teamName(p['team_id']).toLowerCase();
+      return name.contains(_query) || role.contains(_query) || team.contains(_query);
+    }).toList();
+  }
+
   void _showPlayerForm({Map<String, dynamic>? player}) {
     final nameController = TextEditingController(text: player?['player_name'] ?? '');
     final ageController = TextEditingController(text: player?['age']?.toString() ?? '');
@@ -44,54 +85,43 @@ class _PlayersScreenState extends State<PlayersScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(isEditing ? 'Edit Player' : 'Add Player'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Player Name'),
-                ),
-                TextField(
-                  controller: ageController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Age'),
-                ),
-                TextField(
-                  controller: jerseyController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Jersey No'),
-                ),
-                TextField(
-                  controller: roleController,
-                  decoration: const InputDecoration(labelText: 'Role (Batsman/Bowler/etc)'),
-                ),
-                DropdownButton<int>(
-                  value: selectedTeamId,
-                  hint: const Text('Select Team'),
-                  isExpanded: true,
-                  items: _teams.map<DropdownMenuItem<int>>((team) {
-                    return DropdownMenuItem<int>(
-                      value: team['team_id'],
-                      child: Text(team['team_name']),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setDialogState(() {
-                      selectedTeamId = value;
-                    });
-                  },
-                ),
-              ],
+          title: Text(isEditing ? 'Edit Player' : 'Add Player', style: AppText.h2),
+          content: SizedBox(
+            width: 420,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppTextField(controller: nameController, label: 'Player Name', icon: Icons.person_outline),
+                  Row(
+                    children: [
+                      Expanded(child: AppTextField(controller: ageController, keyboardType: TextInputType.number, label: 'Age')),
+                      const SizedBox(width: 12),
+                      Expanded(child: AppTextField(controller: jerseyController, keyboardType: TextInputType.number, label: 'Jersey No')),
+                    ],
+                  ),
+                  AppTextField(controller: roleController, label: 'Role (Batsman/Bowler/etc)', icon: Icons.sports_cricket_outlined),
+                  AppDropdown<int>(
+                    value: selectedTeamId,
+                    label: 'Select Team',
+                    icon: Icons.groups_outlined,
+                    items: _teams.map<DropdownMenuItem<int>>((team) {
+                      return DropdownMenuItem<int>(
+                        value: team['team_id'],
+                        child: Text(team['team_name']),
+                      );
+                    }).toList(),
+                    onChanged: (value) => setDialogState(() => selectedTeamId = value),
+                  ),
+                ],
+              ),
             ),
           ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            AppButton(
+              label: isEditing ? 'Save' : 'Add',
               onPressed: () async {
                 try {
                   final age = int.tryParse(ageController.text) ?? 0;
@@ -118,13 +148,10 @@ class _PlayersScreenState extends State<PlayersScreen> {
                   _loadPlayers();
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
+                    showAppSnackBar(context, 'Error: $e', isError: true);
                   }
                 }
               },
-              child: Text(isEditing ? 'Save' : 'Add'),
             ),
           ],
         ),
@@ -132,79 +159,163 @@ class _PlayersScreenState extends State<PlayersScreen> {
     );
   }
 
-  void _confirmDelete(int playerId) {
-    showDialog(
+  void _confirmDelete(int playerId) async {
+    final confirmed = await showAppConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Player?'),
-        content: const Text('This cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              await ApiService.deletePlayer(playerId);
-              if (context.mounted) Navigator.pop(context);
-              _loadPlayers();
-            },
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+      title: 'Delete Player?',
+      message: 'This cannot be undone.',
     );
+    if (confirmed) {
+      await ApiService.deletePlayer(playerId);
+      _loadPlayers();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Players')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showPlayerForm(),
+        icon: const Icon(Icons.add, color: AppColors.primary),
+        label: const Text('Add Player', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+        backgroundColor: AppColors.primaryTint,
+        elevation: 1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.35), width: 1.2),
+        ),
+      ),
       body: FutureBuilder<List<dynamic>>(
         future: _playersFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const AppLoadingState(message: 'Loading players…');
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return AppErrorState(message: '${snapshot.error}', onRetry: _loadPlayers);
           }
           final players = snapshot.data ?? [];
-          if (players.isEmpty) {
-            return const Center(child: Text('No players yet. Tap + to add one.'));
-          }
-          return ListView.builder(
-            itemCount: players.length,
-            itemBuilder: (context, index) {
-              final player = players[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: ListTile(
-                  title: Text('${player['player_name']} (#${player['jersey_no']})'),
-                  subtitle: Text('${player['role']}  |  Age: ${player['age']}'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => _showPlayerForm(player: player),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _confirmDelete(player['player_id']),
-                      ),
-                    ],
+          final isDemo = players.isEmpty;
+          final displayPlayers = isDemo ? _demoPlayers : players;
+          final filtered = _filtered(displayPlayers);
+          return RefreshIndicator(
+            onRefresh: () async => _loadPlayers(),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
+              children: [
+                const AppPageHeader(
+                  title: 'Player Profiles',
+                  subtitle: 'Manage squads, roles, and jersey details in one place.',
+                ),
+                const SizedBox(height: 16),
+                if (isDemo) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.warningTint,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline, size: 18, color: AppColors.warning),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Showing sample players — add your first real player to replace this.',
+                            style: AppText.caption.copyWith(color: const Color(0xFF92400E)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                TextField(
+                  controller: _searchController,
+                  decoration: const InputDecoration(
+                    hintText: 'Search players, roles, or teams',
+                    prefixIcon: Icon(Icons.search, size: 20),
                   ),
                 ),
-              );
-            },
+                const SizedBox(height: 16),
+                if (filtered.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32),
+                    child: Center(child: Text('No players match "${_searchController.text}"', style: AppText.caption)),
+                  )
+                else
+                  ...filtered.map((player) {
+                    final name = (player['player_name'] ?? '').toString();
+                    final isDemoPlayer = isDemo;
+                    final teamLabel = isDemoPlayer ? (player['team_name'] ?? '-').toString() : _teamName(player['team_id']);
+                    return AppSectionCard(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      hoverElevate: true,
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: AppColors.accentTint,
+                              borderRadius: BorderRadius.circular(AppRadius.md),
+                            ),
+                            child: Text(
+                              '#${player['jersey_no'] ?? '-'}',
+                              style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: 13),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(name, style: AppText.h3),
+                                    if (isDemoPlayer) ...[
+                                      const SizedBox(width: 8),
+                                      AppBadge(label: 'Sample', color: AppColors.warning),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Wrap(
+                                  spacing: 10,
+                                  runSpacing: 4,
+                                  children: [
+                                    Text('${player['role'] ?? '-'}', style: AppText.caption),
+                                    Text('Age: ${player['age'] ?? '-'}', style: AppText.caption),
+                                    Text(teamLabel, style: AppText.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!isDemoPlayer) ...[
+                            IconButton(
+                              tooltip: 'Edit',
+                              icon: const Icon(Icons.edit_outlined, color: AppColors.textSecondary),
+                              onPressed: () => _showPlayerForm(player: player),
+                            ),
+                            IconButton(
+                              tooltip: 'Delete',
+                              icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                              onPressed: () => _confirmDelete(player['player_id']),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  }),
+              ],
+            ),
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showPlayerForm(),
-        child: const Icon(Icons.add),
       ),
     );
   }
