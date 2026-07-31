@@ -1,6 +1,6 @@
 #  Cricket Management System
 
-A full-stack **Cricket Management System** developed using **Flutter**, **Node.js (Express)**, and **PostgreSQL**. The application helps manage cricket teams, players, matches, live scoring, batting & bowling records, and match results through an easy-to-use interface.
+A full-stack **Cricket Management System** developed using **Flutter**, **Node.js **, and **PostgreSQL**. The application helps manage cricket teams, players, matches, live scoring, batting & bowling records, and match results through an easy-to-use interface.
 
 ---
 
