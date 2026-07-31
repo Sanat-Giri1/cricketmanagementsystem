@@ -32,8 +32,8 @@ A full-stack Cricket Management System developed using **Flutter**, **Node.js (E
 <h3 align="center">📊 Management Dashboard & Team Management</h3>
 
 <p align="center">
-  <img src="screenshots/1.Management_Dashboard.png" width="320" alt="Management Dashboard">
-  <img src="screenshots/2.Team_Management_Screen.png" width="320" alt="Team Management">
+  <img src="screenshots/1.Management_Dashboard.png" width="260" style="margin-right:30px;" alt="Management Dashboard">
+  <img src="screenshots/2.Team_Management_Screen.png" width="260" style="margin-left:30px;" alt="Team Management">
 </p>
 
 ---
@@ -41,8 +41,8 @@ A full-stack Cricket Management System developed using **Flutter**, **Node.js (E
 <h3 align="center">👥 Player Management & Match Management</h3>
 
 <p align="center">
-  <img src="screenshots/3.Player_Management_Screen.png" width="320" alt="Player Management">
-  <img src="screenshots/4.Match_Management_Screen.png" width="320" alt="Match Management">
+  <img src="screenshots/3.Player_Management_Screen.png" width="260"  style="margin-right:30px;" alt="Player Management">
+  <img src="screenshots/4.Match_Management_Screen.png" width="260" style="margin-left:30px;" alt="Match Management">
 </p>
 
 ---
@@ -50,8 +50,8 @@ A full-stack Cricket Management System developed using **Flutter**, **Node.js (E
 <h3 align="center">🏏 Live Score Management & Match Result</h3>
 
 <p align="center">
-  <img src="screenshots/5.Live_Score_Management_Screen.png" width="320" alt="Live Score Management">
-  <img src="screenshots/6.Match_Result_Screen.png" width="320" alt="Match Result">
+  <img src="screenshots/5.Live_Score_Management_Screen.png" width="260" style="margin-right:30px;" alt="Live Score Management">
+  <img src="screenshots/6.Match_Result_Screen.png" width="260" style="margin-left:30px;" alt="Match Result">
 </p>
 
 ---
@@ -59,8 +59,8 @@ A full-stack Cricket Management System developed using **Flutter**, **Node.js (E
 <h3 align="center">🏆 Batting Record & Bowling Record</h3>
 
 <p align="center">
-  <img src="screenshots/7.Batting_Record_Screen.png" width="320" alt="Batting Record">
-  <img src="screenshots/8.Bowling_Record_Screen.png" width="320" alt="Bowling Record">
+  <img src="screenshots/7.Batting_Record_Screen.png" width="260" style="margin-right:30px;" alt="Batting Record">
+  <img src="screenshots/8.Bowling_Record_Screen.png" width="260" style="margin-left:30px;" alt="Bowling Record">
 </p>
 
 ---
@@ -68,8 +68,8 @@ A full-stack Cricket Management System developed using **Flutter**, **Node.js (E
 <h3 align="center">📈 Result Scorecard & Match Score</h3>
 
 <p align="center">
-  <img src="screenshots/9.Result_Scorecard_Screen.png" width="320" alt="Result Scorecard">
-  <img src="screenshots/10.Match_Score_Screen.png" width="320" alt="Match Score">
+  <img src="screenshots/9.Result_Scorecard_Screen.png" width="260" style="margin-right:30px;" alt="Result Scorecard">
+  <img src="screenshots/10.Match_Score_Screen.png" width="260" style="margin-left:30px;" alt="Match Score">
 </p>
 
 ---
@@ -77,8 +77,8 @@ A full-stack Cricket Management System developed using **Flutter**, **Node.js (E
 <h3 align="center">✏️ Edit Player & 🏆 Tournament Setup</h3>
 
 <p align="center">
-  <img src="screenshots/11.Edit_Player_Form.png" width="320" alt="Edit Player">
-  <img src="screenshots/12.Tournament_Setup_Screen.png" width="320" alt="Tournament Setup">
+  <img src="screenshots/11.Edit_Player_Form.png" width="260" style="margin-right:30px;" alt="Edit Player">
+  <img src="screenshots/12.Tournament_Setup_Screen.png" width="260" style="margin-left:30px;" alt="Tournament Setup">
 </p>
 
 ---
