@@ -26,31 +26,60 @@ A full-stack Cricket Management System developed using **Flutter**, **Node.js (E
 
 ---
 
-#  Project Screenshots
 
-| Dashboard | Team Management |
-|------------|-----------------|
-| ![](screenshots/1.Management_Dashboard.png) | ![](screenshots/2.Team_Management_Screen.png) |
+<h2 align="center">📸 Project Screenshots</h2>
 
-| Player Management | Match Management |
-|-------------------|------------------|
-| ![](screenshots/3.Player_Management_Screen.png) | ![](screenshots/4.Match_Management_Screen.png) |
+<h3 align="center">📊 Management Dashboard & Team Management</h3>
 
-| Live Score | Match Result |
-|------------|--------------|
-| ![](screenshots/5.Live_Score_Management_Screen.png) | ![](screenshots/6.Match_Result_Screen.png) |
+<p align="center">
+  <img src="screenshots/1.Management_Dashboard.png" width="320" alt="Management Dashboard">
+  <img src="screenshots/2.Team_Management_Screen.png" width="320" alt="Team Management">
+</p>
 
-| Batting Record | Bowling Record |
-|----------------|----------------|
-| ![](screenshots/7.Batting_Record_Screen.png) | ![](screenshots/8.Bowling_Record_Screen.png) |
+---
 
-| Result Scorecard | Match Score |
-|------------------|-------------|
-| ![](screenshots/9.Result_Scorecard_Screen.png) | ![](screenshots/10.Match_Score_Screen.png) |
+<h3 align="center">👥 Player Management & Match Management</h3>
 
-| Edit Player | Tournament Setup |
-|-------------|------------------|
-| ![](screenshots/11.Edit_Player_Form.png) | ![](screenshots/12.Tournament_Setup_Screen.png) |
+<p align="center">
+  <img src="screenshots/3.Player_Management_Screen.png" width="320" alt="Player Management">
+  <img src="screenshots/4.Match_Management_Screen.png" width="320" alt="Match Management">
+</p>
+
+---
+
+<h3 align="center">🏏 Live Score Management & Match Result</h3>
+
+<p align="center">
+  <img src="screenshots/5.Live_Score_Management_Screen.png" width="320" alt="Live Score Management">
+  <img src="screenshots/6.Match_Result_Screen.png" width="320" alt="Match Result">
+</p>
+
+---
+
+<h3 align="center">🏆 Batting Record & Bowling Record</h3>
+
+<p align="center">
+  <img src="screenshots/7.Batting_Record_Screen.png" width="320" alt="Batting Record">
+  <img src="screenshots/8.Bowling_Record_Screen.png" width="320" alt="Bowling Record">
+</p>
+
+---
+
+<h3 align="center">📈 Result Scorecard & Match Score</h3>
+
+<p align="center">
+  <img src="screenshots/9.Result_Scorecard_Screen.png" width="320" alt="Result Scorecard">
+  <img src="screenshots/10.Match_Score_Screen.png" width="320" alt="Match Score">
+</p>
+
+---
+
+<h3 align="center">✏️ Edit Player & 🏆 Tournament Setup</h3>
+
+<p align="center">
+  <img src="screenshots/11.Edit_Player_Form.png" width="320" alt="Edit Player">
+  <img src="screenshots/12.Tournament_Setup_Screen.png" width="320" alt="Tournament Setup">
+</p>
 
 ---
 
