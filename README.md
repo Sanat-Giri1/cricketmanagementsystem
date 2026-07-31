@@ -86,8 +86,9 @@ All project assets, documentation, database dump, and additional resources are a
 
 ##  Developed By
 
-**Bandana Gyawali**
+**Bandana Gyawali**  
 **Arip Sunar**  
 **Sanat Giri**  
 **Sushan Luitel**  
 Computer Engineering Students
+Kathmandu University
