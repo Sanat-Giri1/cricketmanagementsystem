@@ -1,24 +1,24 @@
-# 🏏 Cricket Management System
+#  Cricket Management System
 
 A full-stack **Cricket Management System** developed using **Flutter**, **Node.js (Express)**, and **PostgreSQL**. The application helps manage cricket teams, players, matches, live scoring, batting & bowling records, and match results through an easy-to-use interface.
 
 ---
 
-# ✨ Features
+#  Features
 
-- 🏏 Team Management
-- 👥 Player Management
-- 📅 Match Scheduling & Management
-- 📊 Live Score Management
-- 🏆 Batting & Bowling Records
-- 📈 Match Scorecard
-- 🥇 Match Result Generation
-- 🏅 Tournament Setup
-- 📋 Dashboard with Statistics
+-  Team Management
+-  Player Management
+-  Match Scheduling & Management
+-  Live Score Management
+-  Batting & Bowling Records
+-  Match Scorecard
+-  Match Result Generation
+-  Tournament Setup
+-  Dashboard with Statistics
 
 ---
 
-# 🛠️ Tech Stack
+#  Tech Stack
 
 - **Frontend:** Flutter
 - **Backend:** Node.js + Express
@@ -26,7 +26,7 @@ A full-stack **Cricket Management System** developed using **Flutter**, **Node.j
 
 ---
 
-# 📸 Project Screenshots
+#  Project Screenshots
 
 <table align="center">
 
@@ -128,7 +128,7 @@ A full-stack **Cricket Management System** developed using **Flutter**, **Node.j
 
 ---
 
-# 🚀 How to Run
+#  How to Run
 
 ## Backend
 
@@ -148,17 +148,17 @@ flutter run
 
 ---
 
-# 📁 Project Assets
+#  Project Assets
 
 All project assets, documentation, source code, database dump, screenshots, and report are available here.
 
-### 📂 Google Drive
+###  Google Drive
 
 https://drive.google.com/drive/folders/1-wYE4ySBqJpwqSooDm5AzBPD1LjK8BQL
 
 ---
 
-# 👨‍💻 Developed By
+#  Developed By
 
 - **Bandana Gyawali**
 - **Arip Sunar**
